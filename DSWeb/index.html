@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>DSWeb</title>
+<style>
+/* ============================================================
+   DSWeb · 设计令牌
+   ============================================================ */
+:root{
+  --accent:#4c6ef5;
+  --accent-2:#7c5cff;
+  --accent-ink:#ffffff;
+  --radius:14px;
+  --ui-scale:1;
+  --blur:18px;
+  --anim:.22s;
+
+  --shell:#eef1f7;
+  --glass:rgba(255,255,255,.62);
+  --glass-strong:rgba(255,255,255,.86);
+  --card:rgba(255,255,255,.94);
+  --text:#161a22;
+  --muted:#68718a;
+  --line:rgba(20,26,40,.12);
+  --shadow:0 18px 50px rgba(15,23,42,.18);
+  --shadow-sm:0 6px 18px rgba(15,23,42,.12);
+  --hover:rgba(20,26,40,.06);
+  --field:rgba(255,255,255,.9);
+}
+html[data-theme="dark"]{
+  --shell:#0e1117;
+  --glass:rgba(28,33,44,.62);
+  --glass-strong:rgba(24,29,39,.9);
+  --card:rgba(28,33,44,.96);
+  --text:#e9edf6;
+  --muted:#98a2b8;
+  --line:rgba(255,255,255,.12);
+  --shadow:0 20px 60px rgba(0,0,0,.55);
+  --shadow-sm:0 8px 22px rgba(0,0,0,.4);
+  --hover:rgba(255,255,255,.08);
+  --field:rgba(255,255,255,.07);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{
+  font-family:"Segoe UI Variable","Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:calc(14px * var(--ui-scale));
+  color:var(--text);
+  background:var(--shell);
+  -webkit-font-smoothing:antialiased;
+  user-select:none;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 40%,transparent);
+  border-radius:8px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--muted) 65%,transparent);
+  background-clip:content-box}
+
+/* ============================================================
+   桌面 / 壁纸
+   ============================================================ */
+#desktop{
+  position:fixed;inset:0;bottom:var(--bar,52px);
+  background-size:cover;background-position:center;
+  overflow:hidden;
+}
+#desktop.no-blur .glass{backdrop-filter:none !important}
+#wallpaper-layer{position:absolute;inset:0;z-index:0}
+#wallpaper-layer::after{ /* 壁纸上的轻微暗角，让玻璃面板更有层次 */
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 50% 0%,transparent 40%,rgba(0,0,0,.18));
+  pointer-events:none;
+}
+#icons{position:absolute;inset:14px auto auto 14px;z-index:1;
+  display:grid;grid-auto-flow:column;grid-template-rows:repeat(auto-fill,96px);gap:4px}
+.dicon{width:92px;height:92px;border-radius:12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;padding:8px;text-align:center;
+  border:1px solid transparent;transition:background var(--anim),border-color var(--anim)}
+.dicon:hover{background:var(--hover);border-color:var(--line)}
+.dicon.sel{background:color-mix(in srgb,var(--accent) 22%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
+.dicon .glyph{width:44px;height:44px;display:grid;place-items:center;font-size:26px;
+  border-radius:12px;background:var(--glass);border:1px solid var(--line);
+  box-shadow:var(--shadow-sm);backdrop-filter:blur(var(--blur))}
+.dicon .label{font-size:12.5px;line-height:1.25;max-width:88px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  text-shadow:0 1px 3px rgba(0,0,0,.35);color:#fff}
+html[data-theme="light"] .dicon .label{text-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+/* ============================================================
+   窗口
+   ============================================================ */
+.window{
+  position:absolute;z-index:10;display:flex;flex-direction:column;
+  background:var(--glass-strong);
+  backdrop-filter:blur(var(--blur)) saturate(160%);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:opacity var(--anim),transform var(--anim);
+  min-width:280px;min-height:180px;
+}
+.window.dragging,.window.resizing{transition:none}
+.window.opening{opacity:0;transform:scale(.96) translateY(8px)}
+.window.closing{opacity:0;transform:scale(.96);pointer-events:none}
+.window.minimized{opacity:0;transform:scale(.86) translateY(40vh);pointer-events:none}
+.window.maximized{border-radius:0;border-color:transparent}
+.window.inactive{box-shadow:var(--shadow-sm)}
+.window.inactive .titlebar{opacity:.72}
+
+.titlebar{height:38px;flex:none;display:flex;align-items:center;gap:8px;
+  padding:0 6px 0 12px;cursor:grab;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--text) 4%,transparent),transparent)}
+.titlebar:active{cursor:grabbing}
+.titlebar .ticon{font-size:15px;flex:none}
+.titlebar .ttitle{flex:1;font-size:13px;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.wbtn{width:32px;height:26px;border-radius:7px;display:grid;place-items:center;
+  color:var(--muted);transition:background var(--anim),color var(--anim)}
+.wbtn:hover{background:var(--hover);color:var(--text)}
+.wbtn.close:hover{background:#e5484d;color:#fff}
+.wbtn svg{display:block}
+.wbody{flex:1;min-height:0;overflow:auto;position:relative;background:var(--card)}
+.wbody.pad{padding:16px}
+.wbody.nopad{overflow:hidden}
+.resize-handle{position:absolute;z-index:3}
+.rh-e{right:-3px;top:8px;bottom:8px;width:7px;cursor:ew-resize}
+.rh-s{bottom:-3px;left:8px;right:8px;height:7px;cursor:ns-resize}
+.rh-w{left:-3px;top:8px;bottom:8px;width:7px;cursor:ew-resize}
+.rh-n{top:-3px;left:8px;right:8px;height:7px;cursor:ns-resize}
+.rh-se{right:-3px;bottom:-3px;width:16px;height:16px;cursor:nwse-resize}
+.rh-sw{left:-3px;bottom:-3px;width:16px;height:16px;cursor:nesw-resize}
+.window.maximized .resize-handle{display:none}
+
+/* 窗口最小尺寸随视口自适应（手机端） */
+@media (max-width:640px){
+  .window{min-width:0;min-height:0}
+}
+
+/* ============================================================
+   任务栏
+   ============================================================ */
+#taskbar{
+  position:fixed;left:0;right:0;bottom:0;height:52px;z-index:900;
+  display:flex;align-items:center;gap:8px;padding:0 10px;
+  background:var(--glass-strong);backdrop-filter:blur(24px) saturate(170%);
+  border-top:1px solid var(--line);
+}
+#startBtn{width:42px;height:38px;border-radius:10px;display:grid;place-items:center;
+  transition:background var(--anim),transform var(--anim)}
+#startBtn:hover{background:var(--hover)}
+#startBtn:active{transform:scale(.94)}
+#startBtn.on{background:color-mix(in srgb,var(--accent) 20%,transparent)}
+.logo{width:20px;height:20px;display:grid;grid-template-columns:1fr 1fr;gap:2.5px}
+.logo i{border-radius:2px;background:var(--accent)}
+.logo i:nth-child(2){background:var(--accent-2)}
+.logo i:nth-child(3){background:color-mix(in srgb,var(--accent) 60%,#fff)}
+.logo i:nth-child(4){background:color-mix(in srgb,var(--accent-2) 60%,#fff)}
+
+#tasks{flex:1;display:flex;align-items:center;gap:6px;overflow:hidden}
+.tbtn{height:38px;max-width:190px;display:flex;align-items:center;gap:8px;
+  padding:0 12px;border-radius:9px;border:1px solid transparent;
+  position:relative;transition:background var(--anim),border-color var(--anim);flex:none}
+.tbtn:hover{background:var(--hover)}
+.tbtn.active{background:color-mix(in srgb,var(--accent) 16%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.tbtn .ti{font-size:15px}
+.tbtn .tt{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn::after{content:"";position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+  width:14px;height:3px;border-radius:2px;background:var(--muted);opacity:.45;transition:var(--anim)}
+.tbtn.active::after{width:22px;opacity:1;background:var(--accent)}
+
+#tray{display:flex;align-items:center;gap:6px;flex:none}
+.tray-btn{height:36px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:8px;
+  transition:background var(--anim)}
+.tray-btn:hover{background:var(--hover)}
+.tray-btn .time{text-align:right;line-height:1.15;font-size:12px}
+.tray-btn .time b{display:block;font-weight:600}
+.tray-btn .time span{color:var(--muted)}
+@media (max-width:640px){.tbtn .tt{display:none}.tray-btn .time span{display:none}}
+
+/* ============================================================
+   开始菜单
+   ============================================================ */
+#start{
+  position:fixed;left:50%;bottom:62px;z-index:950;width:min(660px,calc(100vw - 20px));
+  max-height:min(660px,calc(100vh - 90px));
+  transform:translate(-50%,14px) scale(.985);opacity:0;pointer-events:none;
+  display:flex;flex-direction:column;
+  background:var(--glass-strong);backdrop-filter:blur(28px) saturate(170%);
+  border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  transition:opacity var(--anim),transform var(--anim);
+}
+#start.open{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+.start-search{padding:14px 16px 8px}
+.start-search input{width:100%;height:40px;border-radius:11px;border:1px solid var(--line);
+  background:var(--field);padding:0 14px 0 38px;outline:none;user-select:text}
+.start-search input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.start-search{position:relative}
+.start-search .mag{position:absolute;left:28px;top:26px;opacity:.5}
+.start-scroll{overflow:auto;padding:6px 16px 16px}
+.sec-title{display:flex;align-items:center;justify-content:space-between;
+  font-size:12px;font-weight:600;color:var(--muted);margin:14px 4px 8px;letter-spacing:.4px}
+.sec-title button{font-size:11.5px;color:var(--muted);padding:3px 8px;border-radius:7px}
+.sec-title button:hover{background:var(--hover);color:var(--text)}
+.app-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+@media (max-width:560px){.app-grid{grid-template-columns:repeat(4,1fr)}}
+.app-tile{border-radius:12px;padding:12px 6px 10px;display:flex;flex-direction:column;
+  align-items:center;gap:8px;border:1px solid transparent;
+  transition:background var(--anim),border-color var(--anim),transform var(--anim)}
+.app-tile:hover{background:var(--hover);border-color:var(--line)}
+.app-tile:active{transform:scale(.96)}
+.app-tile .glyph{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  font-size:22px;background:var(--field);border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+.app-tile .nm{font-size:11.5px;text-align:center;line-height:1.3;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.app-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;
+  transition:background var(--anim)}
+.app-row:hover{background:var(--hover)}
+.app-row .glyph{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  font-size:16px;background:var(--field);border:1px solid var(--line);flex:none}
+.app-row .nm{flex:1;font-size:13px}
+.app-row .sub{font-size:11.5px;color:var(--muted)}
+.start-foot{flex:none;border-top:1px solid var(--line);padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:color-mix(in srgb,var(--text) 3%,transparent);border-radius:0 0 17px 17px}
+.who{display:flex;align-items:center;gap:9px;font-size:13px;padding:6px 10px;border-radius:9px}
+.who:hover{background:var(--hover)}
+.avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:12px;font-weight:700}
+
+/* ============================================================
+   托盘弹出面板 / 右键菜单 / 通知
+   ============================================================ */
+.pop{position:fixed;z-index:940;background:var(--glass-strong);
+  backdrop-filter:blur(26px) saturate(170%);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow);padding:14px;
+  opacity:0;transform:translateY(10px) scale(.98);pointer-events:none;
+  transition:opacity var(--anim),transform var(--anim)}
+.pop.open{opacity:1;transform:none;pointer-events:auto}
+#quick{right:10px;bottom:62px;width:320px}
+#quick .clock-big{font-size:32px;font-weight:300;line-height:1.1}
+#quick .date-big{color:var(--muted);font-size:13px;margin-top:2px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.quick-tile{display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;
+  border:1px solid var(--line);background:var(--field);text-align:left;
+  transition:var(--anim)}
+.quick-tile:hover{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.quick-tile.on{background:color-mix(in srgb,var(--accent) 22%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.quick-tile .k{font-size:18px}
+.quick-tile .v{font-size:11.5px;color:var(--muted);display:block}
+.slider-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:12px;color:var(--muted)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;flex:1;
+  background:color-mix(in srgb,var(--muted) 35%,transparent);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+  border-radius:50%;background:var(--accent);border:2px solid var(--card);cursor:pointer}
+
+#ctxmenu{position:fixed;z-index:960;min-width:210px;padding:6px;
+  background:var(--glass-strong);backdrop-filter:blur(26px);
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  opacity:0;transform:scale(.97);pointer-events:none;transition:opacity .12s,transform .12s}
+#ctxmenu.open{opacity:1;transform:none;pointer-events:auto}
+.ctx-item{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;font-size:13px;
+  width:100%;text-align:left}
+.ctx-item:hover{background:var(--hover)}
+.ctx-item .k{margin-left:auto;font-size:11px;color:var(--muted)}
+.ctx-sep{height:1px;background:var(--line);margin:5px 8px}
+
+#toasts{position:fixed;right:12px;bottom:64px;z-index:970;display:flex;flex-direction:column;
+  gap:8px;align-items:flex-end;pointer-events:none}
+.toast{background:var(--glass-strong);backdrop-filter:blur(22px);border:1px solid var(--line);
+  border-radius:13px;box-shadow:var(--shadow);padding:11px 14px;max-width:330px;
+  display:flex;gap:10px;align-items:flex-start;animation:slideIn .25s ease-out}
+.toast.out{animation:slideOut .2s ease-in forwards}
+.toast .k{font-size:17px}
+.toast b{display:block;font-size:13px;margin-bottom:2px}
+.toast p{margin:0;font-size:12px;color:var(--muted);line-height:1.45}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes slideOut{to{opacity:0;transform:translateX(20px)}}
+
+/* ============================================================
+   通用 UI 组件（供各应用复用）
+   ============================================================ */
+.ui-tabs{display:flex;gap:4px;padding:10px 14px 0;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--text) 2%,transparent);flex:none}
+.ui-tab{padding:8px 13px;border-radius:9px 9px 0 0;font-size:13px;color:var(--muted);
+  border:1px solid transparent;border-bottom:none;transition:var(--anim)}
+.ui-tab:hover{color:var(--text);background:var(--hover)}
+.ui-tab.on{color:var(--text);background:var(--card);border-color:var(--line);
+  font-weight:600;position:relative;top:1px}
+.ui-pane{display:none;padding:18px}
+.ui-pane.on{display:block}
+.field{margin-bottom:16px}
+.field > label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:7px}
+.field .desc{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+.ipt,select.ipt{width:100%;height:38px;border-radius:10px;border:1px solid var(--line);
+  background:var(--field);padding:0 12px;outline:none;user-select:text}
+.ipt:focus{border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.btn{height:36px;padding:0 16px;border-radius:10px;font-size:13px;font-weight:500;
+  background:var(--accent);color:var(--accent-ink);transition:var(--anim);
+  border:1px solid transparent;display:inline-flex;align-items:center;gap:7px;justify-content:center}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:var(--field);color:var(--text);border-color:var(--line)}
+.btn.ghost:hover{background:var(--hover);filter:none}
+.btn.danger{background:#e5484d;color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;align-items:center;gap:10px}
+.row.between{justify-content:space-between}
+.switch{width:44px;height:25px;border-radius:99px;background:color-mix(in srgb,var(--muted) 35%,transparent);
+  position:relative;flex:none;transition:background var(--anim)}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left var(--anim)}
+.switch.on{background:var(--accent)}
+.switch.on::after{left:22px}
+.swatches{display:flex;flex-wrap:wrap;gap:9px}
+.swatch{width:34px;height:34px;border-radius:10px;border:2px solid transparent;
+  box-shadow:var(--shadow-sm);transition:transform var(--anim),border-color var(--anim)}
+.swatch:hover{transform:scale(1.08)}
+.swatch.on{border-color:var(--text);transform:scale(1.08)}
+.wall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:10px}
+.wall{aspect-ratio:16/10;border-radius:11px;border:2px solid var(--line);background-size:cover;
+  background-position:center;position:relative;overflow:hidden;transition:var(--anim)}
+.wall:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.wall.on{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.wall span{position:absolute;left:0;right:0;bottom:0;font-size:11px;padding:5px;
+  background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;text-align:center}
+.card{border:1px solid var(--line);border-radius:13px;padding:14px;background:var(--field);
+  margin-bottom:12px}
+.card h3{margin:0 0 4px;font-size:14px}
+.card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6}
+.empty-state{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty-state .big{font-size:38px;margin-bottom:8px}
+.kv{display:flex;justify-content:space-between;gap:16px;padding:9px 2px;border-bottom:1px dashed var(--line);font-size:13px}
+.kv:last-child{border-bottom:none}
+.kv span{color:var(--muted)}
+.kv b{font-weight:600;text-align:right;user-select:text}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--field);
+  border:1px solid var(--line);color:var(--muted)}
+
+/* ============================================================
+   应用：浏览器
+   ============================================================ */
+.br{display:flex;flex-direction:column;height:100%}
+.br-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--text) 3%,transparent);flex:none}
+.br-nav{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
+.br-nav:hover:not(:disabled){background:var(--hover);color:var(--text)}
+.br-nav:disabled{opacity:.35;cursor:not-allowed}
+.br-url{flex:1;height:34px;border-radius:99px;border:1px solid var(--line);background:var(--field);
+  padding:0 14px 0 34px;outline:none;user-select:text;min-width:0}
+.br-url:focus{border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.br-urlwrap{flex:1;position:relative;display:flex;align-items:center;min-width:0}
+.br-urlwrap .lock{position:absolute;left:11px;font-size:12px;opacity:.6}
+.br-load{height:2px;background:var(--accent);width:0;transition:width .3s;flex:none}
+.br-view{flex:1;position:relative;background:var(--card);overflow:hidden}
+.br-view iframe{width:100%;height:100%;border:none;background:#fff}
+.br-home{position:absolute;inset:0;overflow:auto;padding:26px}
+.br-logo{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.br-logo i{font-style:normal;color:var(--accent)}
+.br-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+.br-search{display:flex;gap:8px;max-width:560px}
+.br-search input{flex:1;height:42px;border-radius:99px;border:1px solid var(--line);
+  background:var(--field);padding:0 18px;outline:none;user-select:text}
+.br-search input:focus{border-color:var(--accent)}
+.br-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px;
+  margin-top:24px;max-width:640px}
+.br-link{padding:14px 8px;border-radius:13px;border:1px solid var(--line);background:var(--field);
+  text-align:center;font-size:12px;transition:var(--anim)}
+.br-link:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);
+  border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.br-link .g{font-size:24px;display:block;margin-bottom:7px}
+.br-fail{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:30px;background:var(--card);gap:8px}
+.br-fail .big{font-size:40px}
+.br-fail h3{margin:0;font-size:16px}
+.br-fail p{margin:0;font-size:12.5px;color:var(--muted);max-width:460px;line-height:1.6}
+.br-fail code{background:var(--field);border:1px solid var(--line);padding:2px 6px;border-radius:6px;
+  font-size:11.5px;user-select:text}
+
+/* ============================================================
+   应用：记事本 / 计算器 / 终端
+   ============================================================ */
+.note-toolbar{display:flex;gap:8px;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
+.note-toolbar .grow{flex:1}
+.note-list{display:grid;grid-template-columns:minmax(180px,240px) 1fr;height:100%}
+@media (max-width:640px){.note-list{grid-template-columns:1fr}.note-list .np-side.hide{display:none}}
+.np-side{border-right:1px solid var(--line);overflow:auto;background:color-mix(in srgb,var(--text) 2%,transparent)}
+.np-item{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:var(--anim)}
+.np-item:hover{background:var(--hover)}
+.np-item.on{background:color-mix(in srgb,var(--accent) 16%,transparent);
+  border-left:3px solid var(--accent);padding-left:11px}
+.np-item b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-item small{color:var(--muted);font-size:11px}
+.np-edit{display:flex;flex-direction:column;min-width:0}
+.np-edit input{height:46px;border:none;border-bottom:1px solid var(--line);background:transparent;
+  padding:0 16px;font-size:16px;font-weight:600;outline:none;user-select:text}
+.np-edit textarea{flex:1;border:none;background:transparent;padding:14px 16px;outline:none;
+  resize:none;line-height:1.7;font-size:13.5px;user-select:text}
+.np-foot{.note-toolbar}
+
+.calc{padding:14px;display:flex;flex-direction:column;gap:10px;height:100%}
+.calc-out{border:1px solid var(--line);border-radius:12px;background:var(--field);padding:12px 14px;
+  text-align:right}
+.calc-out .ex{font-size:12px;color:var(--muted);min-height:16px;user-select:text}
+.calc-out .rs{font-size:30px;font-weight:300;user-select:text;overflow:hidden;text-overflow:ellipsis}
+.calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;flex:1}
+.calc-keys button{border-radius:11px;border:1px solid var(--line);background:var(--field);
+  font-size:16px;transition:var(--anim)}
+.calc-keys button:hover{background:var(--hover)}
+.calc-keys button:active{transform:scale(.96)}
+.calc-keys .op{color:var(--accent);font-weight:600}
+.calc-keys .eq{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.calc-keys .fn{color:var(--muted);font-size:14px}
+
+.term{height:100%;background:#0c0f14;color:#d6e2f0;font-family:Consolas,"Cascadia Mono",monospace;
+  font-size:13px;padding:12px;overflow:auto;user-select:text;line-height:1.6}
+.term .in{color:#7ee787}
+.term .er{color:#ff7b72}
+.term .di{color:#79c0ff}
+.term-line{display:flex;gap:8px;align-items:baseline}
+.term-line input{flex:1;background:transparent;border:none;outline:none;color:#d6e2f0;
+  font-family:inherit;font-size:13px}
+
+/* 锁屏 / 关机 */
+#overlay-screen{position:fixed;inset:0;z-index:1200;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(160deg,#101322,#1d2340 60%,#0b0e18);color:#fff;
+  backdrop-filter:blur(10px)}
+#overlay-screen.on{display:flex}
+#overlay-screen .big{font-size:56px;font-weight:200;letter-spacing:2px}
+#overlay-screen p{color:#aab4cc;margin:0;font-size:13.5px}
+#overlay-screen .btn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
+
+/* 引导提示 */
+#boot{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;
+  background:linear-gradient(160deg,#0b0e18,#1b2140);color:#fff;
+  transition:opacity .5s}
+#boot.off{opacity:0;pointer-events:none}
+#boot .box{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+#boot .lgo{width:52px;height:52px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#boot .lgo i{border-radius:5px;background:#5b7cfa;animation:pulse 1.1s ease-in-out infinite}
+#boot .lgo i:nth-child(2){background:#8b6cff;animation-delay:.12s}
+#boot .lgo i:nth-child(3){background:#93a8ff;animation-delay:.24s}
+#boot .lgo i:nth-child(4){background:#b39cff;animation-delay:.36s}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(.88)}50%{opacity:1;transform:scale(1)}}
+#boot h2{margin:0;font-weight:600;letter-spacing:4px;font-size:19px}
+#boot small{color:#8f9ab8}
+</style>
+</head>
+<body>
+
+<!-- 桌面 -->
+<div id="desktop">
+  <div id="wallpaper-layer"></div>
+  <div id="icons"></div>
+</div>
+
+<!-- 窗口容器（窗口由 JS 动态插入） -->
+
+<!-- 任务栏 -->
+<div id="taskbar">
+  <button id="startBtn" title="开始 (Ctrl+Esc)">
+    <span class="logo"><i></i><i></i><i></i><i></i></span>
+  </button>
+  <div id="tasks"></div>
+  <div id="tray">
+    <button class="tray-btn" id="trayQuick" title="快速设置">
+      <span style="font-size:15px" id="trayIcons">🔊 🔋</span>
+      <span class="time"><b id="clock">--:--</b><span id="date">----/--/--</span></span>
+    </button>
+  </div>
+</div>
+
+<!-- 开始菜单 -->
+<div id="start">
+  <div class="start-search">
+    <svg class="mag" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+    <input type="text" id="startSearch" placeholder="搜索应用、设置和文档…">
+  </div>
+  <div class="start-scroll" id="startScroll">
+    <div class="sec-title"><span>已固定</span><button data-goto="apps">所有应用 ›</button></div>
+    <div class="app-grid" id="pinGrid"></div>
+    <div class="sec-title" id="recTitle" style="display:none"><span>最近使用</span></div>
+    <div id="recList"></div>
+    <div class="sec-title" id="allTitle" style="display:none"><span>所有应用</span></div>
+    <div id="allList"></div>
+    <div id="noResult" style="display:none" class="empty-state">
+      <div class="big">🔍</div><div id="noResultText">没有找到匹配项</div>
+    </div>
+  </div>
+  <div class="start-foot">
+    <button class="who" id="userBtn"><span class="avatar">DS</span><span>DSWeb 用户</span></button>
+    <button class="tray-btn" id="powerBtn" title="电源">⏻</button>
+  </div>
+</div>
+
+<!-- 快速设置 -->
+<div id="quick" class="pop">
+  <div class="clock-big" id="qClock">--:--</div>
+  <div class="date-big" id="qDate">----</div>
+  <div class="quick-grid">
+    <button class="quick-tile" id="qTheme"><span class="k">🌙</span><span><b>深色模式</b><span class="v" id="qThemeV">已关闭</span></span></button>
+    <button class="quick-tile" id="qBlur"><span class="k">🪟</span><span><b>毛玻璃</b><span class="v" id="qBlurV">已开启</span></span></button>
+    <button class="quick-tile" id="qMotion"><span class="k">✨</span><span><b>动画</b><span class="v" id="qMotionV">已开启</span></span></button>
+    <button class="quick-tile" id="qFull"><span class="k">⛶</span><span><b>全屏</b><span class="v" id="qFullV">已关闭</span></span></button>
+  </div>
+  <div class="slider-row"><span>🔆</span><input type="range" id="qBright" min="60" max="120" step="1"><b id="qBrightV">100%</b></div>
+  <div class="slider-row"><span>A</span><input type="range" id="qScale" min="85" max="125" step="5"><b id="qScaleV">100%</b></div>
+  <div class="quick-grid" style="margin-top:12px">
+    <button class="quick-tile" data-open="settings"><span class="k">⚙️</span><span><b>设置</b><span class="v">个性化与系统</span></span></button>
+    <button class="quick-tile" data-open="about"><span class="k">ℹ️</span><span><b>关于</b><span class="v">DSWeb</span></span></button>
+  </div>
+</div>
+
+<!-- 右键菜单 -->
+<div id="ctxmenu"></div>
+
+<!-- 通知 -->
+<div id="toasts"></div>
+
+<!-- 锁屏 / 关机屏 -->
+<div id="overlay-screen">
+  <div class="big" id="lockClock">--:--</div>
+  <p id="lockTip">已锁定 · 点击任意位置或按 Esc 解锁</p>
+  <button class="btn" id="lockBtn">返回桌面</button>
+</div>
+
+<!-- 开机动画 -->
+<div id="boot"><div class="box">
+  <div class="lgo"><i></i><i></i><i></i><i></i></div>
+  <h2>DSWEB</h2>
+  <small>正在启动…</small>
+</div></div>
+
+<script>
+/* ============================================================================
+   DSWeb · 网页操作系统
+   单文件实现：桌面 / 任务栏 / 开始菜单 / 窗口管理器 / 设置 / 浏览器 / 记事本 / 计算器 / 终端
+   持久化：全部使用 localStorage，刷新后窗口、位置、设置、浏览器历史都不丢失
+   ========================================================================= */
+(function () {
+'use strict';
+
+/* ---------------------------------------------------------------- 常量 */
+var LS = {
+  settings: 'dsweb.settings.v1',
+  session:  'dsweb.session.v1',
+  browser:  'dsweb.browser.v1',
+  notes:    'dsweb.notes.v1',
+  recent:   'dsweb.recent.v1'
+};
+var BAR_H = 52;                       // 任务栏高度
+var QUICK_OPEN = ['browser', 'notes', 'calc', 'settings'];
+
+/* ---------------------------------------------------------------- 工具 */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;      // 始终用 textContent，杜绝 XSS
+  return n;
+}
+function svgIcon(path, size) {
+  var ns = 'http://www.w3.org/2000/svg';
+  var s = document.createElementNS(ns, 'svg');
+  s.setAttribute('width', size || 12); s.setAttribute('height', size || 12);
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+  s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2');
+  s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+  var p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', path); s.appendChild(p);
+  return s;
+}
+function load(key, fallback) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    var v = JSON.parse(raw);
+    return (v === null || v === undefined) ? fallback : v;
+  } catch (e) { console.warn('DSWeb: 读取 ' + key + ' 失败', e); return fallback; }
+}
+function store(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch (e) {
+    toast('保存失败', '本地存储空间可能已满或被浏览器禁用。', '⚠️');
+    console.warn(e); return false;
+  }
+}
+function uid(p) { return (p || 'id') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function isToday(ts) {
+  var d = new Date(ts), n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+function shortTime(ts) {
+  var d = new Date(ts);
+  return isToday(ts) ? pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+    : (d.getMonth() + 1) + '/' + d.getDate();
+}
+/** 只允许安全协议，防止 javascript: / data:text/html 之类的注入 */
+function safeUrl(u) {
+  if (!u) return null;
+  var s = String(u).trim();
+  if (/^(https?:|dsweb:|about:)/i.test(s)) return s;
+  if (/^[\w-]+(\.[\w-]+)+(\/|$|:|\?|#)/.test(s)) return 'https://' + s;   // example.com
+  return null;
+}
+
+/* ---------------------------------------------------------------- 设置 */
+var defaults = {
+  theme: 'auto',            // auto | light | dark
+  accent: '#4c6ef5',
+  accent2: '#7c5cff',
+  radius: 14,
+  blur: 18,
+  glass: true,
+  motion: true,
+  wallpaper: 'aurora',
+  customWall: '',
+  scale: 100,               // UI 缩放 %
+  brightness: 100,          // 桌面亮度 %
+  h24: true,
+  showSeconds: false,
+  icons: true,
+  userName: 'DSWeb 用户',
+  homePage: 'dsweb://home'
+};
+var S = Object.assign({}, defaults, load(LS.settings, {}));
+function saveSettings() { store(LS.settings, S); }
+
+var WALLPAPERS = {
+  aurora:   { name: '极光',   css: 'linear-gradient(135deg,#0f1b3d 0%,#1c3f7a 35%,#5b3fa8 70%,#c14b8f 100%)' },
+  midnight: { name: '深海',   css: 'linear-gradient(160deg,#050a18 0%,#0d1f3c 45%,#123a5c 100%)' },
+  sunrise:  { name: '晨曦',   css: 'linear-gradient(150deg,#ff9a6b 0%,#ff6f91 40%,#845ec2 100%)' },
+  forest:   { name: '森林',   css: 'linear-gradient(140deg,#04352a 0%,#0b6b4f 50%,#7ac74f 100%)' },
+  graphite: { name: '石墨',   css: 'linear-gradient(140deg,#1a1d23 0%,#2c313c 55%,#454c5c 100%)' },
+  porcelain:{ name: '白瓷',   css: 'linear-gradient(140deg,#f7f9fc 0%,#e3e9f5 50%,#cfd9ef 100%)' },
+  mesh:     { name: '渐变网格', css:
+      'radial-gradient(at 15% 20%,#5b8def 0px,transparent 55%),radial-gradient(at 80% 15%,#b06ab3 0px,transparent 50%),' +
+      'radial-gradient(at 70% 80%,#3ac0a0 0px,transparent 55%),radial-gradient(at 25% 85%,#f2a65a 0px,transparent 50%),#141a2e' },
+  stripes:  { name: '条纹',   css:
+      'repeating-linear-gradient(135deg,#1b2440 0 26px,#22304f 26px 52px)' }
+};
+
+function themeMode() {
+  if (S.theme === 'auto') {
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  return S.theme;
+}
+function applySettings() {
+  var r = document.documentElement;
+  r.setAttribute('data-theme', themeMode());
+  r.style.setProperty('--accent', S.accent);
+  r.style.setProperty('--accent-2', S.accent2);
+  r.style.setProperty('--radius', S.radius + 'px');
+  r.style.setProperty('--blur', S.blur + 'px');
+  r.style.setProperty('--ui-scale', (S.scale / 100));
+  r.style.setProperty('--anim', S.motion ? '.22s' : '0s');
+  r.style.setProperty('--bar', BAR_H + 'px');
+
+  var layer = $('wallpaper-layer');
+  var custom = S.customWall && safeUrl(S.customWall);
+  var wp = WALLPAPERS[S.wallpaper] || WALLPAPERS.aurora;
+  if (custom && S.wallpaper === 'custom') {
+    layer.style.background = '#111';
+    layer.style.backgroundImage = 'url("' + custom.replace(/"/g, '%22') + '")';
+    layer.style.backgroundSize = 'cover';
+    layer.style.backgroundPosition = 'center';
+  } else {
+    layer.style.backgroundImage = 'none';
+    layer.style.background = wp.css;
+  }
+  $('desktop').classList.toggle('no-blur', !S.glass);
+  $('desktop').style.filter = 'brightness(' + (S.brightness / 100) + ')';
+  $('icons').style.display = S.icons ? '' : 'none';
+}
+
+/* ---------------------------------------------------------------- 通知 */
+function toast(title, msg, glyph, ms) {
+  var box = $('toasts');
+  var t = el('div', 'toast');
+  t.appendChild(el('span', 'k', glyph || 'ℹ️'));
+  var body = el('div');
+  body.appendChild(el('b', null, title));
+  if (msg) body.appendChild(el('p', null, msg));
+  t.appendChild(body);
+  box.appendChild(t);
+  setTimeout(function () {
+    t.classList.add('out');
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+  }, ms || 3200);
+}
+
+/* ---------------------------------------------------------------- 窗口管理 */
+var zTop = 20;
+var wins = {};        // id -> { id, app, title, icon, x, y, w, h, min, max, el, body, taskEl }
+var focused = null;
+
+function workArea() {
+  return { w: window.innerWidth, h: window.innerHeight - BAR_H };
+}
+
+function makeWindow(opts) {
+  var id = uid('win');
+  var area = workArea();
+  var w = Math.min(opts.w || 760, area.w - 20);
+  var h = Math.min(opts.h || 520, area.h - 20);
+  var x = opts.x != null ? opts.x : Math.max(10, Math.round((area.w - w) / 2 + (Object.keys(wins).length % 5) * 22 - 44));
+  var y = opts.y != null ? opts.y : Math.max(10, Math.round((area.h - h) / 2 - 20 + (Object.keys(wins).length % 5) * 18));
+  x = clamp(x, 0, Math.max(0, area.w - w));
+  y = clamp(y, 0, Math.max(0, area.h - h));
+
+  var node = el('div', 'window opening');
+  node.style.left = x + 'px';
+  node.style.top = y + 'px';
+  node.style.width = w + 'px';
+  node.style.height = h + 'px';
+
+  // 标题栏
+  var bar = el('div', 'titlebar');
+  var icon = el('span', 'ticon', opts.icon || '🪟');
+  var title = el('span', 'ttitle', opts.title || '窗口');
+  var bMin = el('button', 'wbtn'); bMin.title = '最小化'; bMin.appendChild(svgIcon('M5 12h14', 13));
+  var bMax = el('button', 'wbtn'); bMax.title = '最大化'; bMax.appendChild(svgIcon('M5 5h14v14H5z', 12));
+  var bClose = el('button', 'wbtn close'); bClose.title = '关闭'; bClose.appendChild(svgIcon('M6 6l12 12M18 6L6 18', 13));
+  bar.appendChild(icon); bar.appendChild(title); bar.appendChild(bMin); bar.appendChild(bMax); bar.appendChild(bClose);
+
+  var body = el('div', 'wbody' + (opts.pad === false ? ' nopad' : ' pad'));
+  node.appendChild(bar); node.appendChild(body);
+
+  ['e', 's', 'w', 'n', 'se', 'sw'].forEach(function (d) {
+    node.appendChild(el('div', 'resize-handle rh-' + d)).dataset.dir = d;
+  });
+
+  $('desktop').appendChild(node);
+
+  var win = {
+    id: id, app: opts.app, title: opts.title, icon: opts.icon || '🪟',
+    x: x, y: y, w: w, h: h, max:false, min:false,
+    el: node, body: body, titleEl: title, iconEl: icon
+  };
+  wins[id] = win;
+
+  // 任务栏按钮
+  var tb = el('button', 'tbtn');
+  tb.appendChild(el('span', 'ti', opts.icon || '🪟'));
+  tb.appendChild(el('span', 'tt', opts.title || '窗口'));
+  tb.addEventListener('click', function () {
+    if (focused === id && !win.min) minimize(id); else { restore(id); focus(id); }
+  });
+  $('tasks').appendChild(tb);
+  win.taskEl = tb;
+
+  /* ---- 拖拽 ---- */
+  bar.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('.wbtn')) return;
+    focus(id);
+    if (win.max) {   // 从最大化还原并跟随鼠标
+      toggleMax(id);
+      win.x = clamp(e.clientX - win.w / 2, 0, workArea().w - win.w);
+      win.y = 0;
+      place(win);
+    }
+    startDrag(e, function (dx, dy) {
+      var a = workArea();
+      win.x = clamp(dragStart.x + dx, -win.w + 90, a.w - 60);
+      win.y = clamp(dragStart.y + dy, 0, a.h - 32);
+      place(win);
+    });
+  });
+
+  /* ---- 缩放 ---- */
+  node.querySelectorAll('.resize-handle').forEach(function (hd) {
+    hd.addEventListener('pointerdown', function (e) {
+      e.stopPropagation(); focus(id);
+      var dir = hd.dataset.dir, s0 = { x: win.x, y: win.y, w: win.w, h: win.h };
+      startDrag(e, function (dx, dy) {
+        var a = workArea();
+        var nw = s0.w, nh = s0.h, nx = s0.x, ny = s0.y;
+        if (dir.indexOf('e') >= 0)  nw = clamp(s0.w + dx, winMin().w, a.w - s0.x);
+        if (dir.indexOf('s') >= 0)  nh = clamp(s0.h + dy, winMin().h, a.h - s0.y);
+        if (dir.indexOf('w') >= 0) {
+          nw = clamp(s0.w - dx, winMin().w, s0.x + s0.w);
+          nx = s0.x + s0.w - nw;
+        }
+        if (dir.indexOf('n') >= 0) {
+          nh = clamp(s0.h - dy, winMin().h, s0.y + s0.h);
+          ny = s0.y + s0.h - nh;
+        }
+        win.x = nx; win.y = ny; win.w = nw; win.h = nh; place(win);
+      }, 'resizing');
+    });
+  });
+
+  bMin.addEventListener('click', function () { minimize(id); });
+  bMax.addEventListener('click', function () { toggleMax(id); });
+  bClose.addEventListener('click', function () { closeWindow(id, true); });
+  node.addEventListener('pointerdown', function () { focus(id); }, true);
+
+  setTimeout(function () { node.classList.remove('opening'); }, 20);
+  focus(id);
+  if (opts.onReady) opts.onReady(win);
+  persistSession();
+  return win;
+}
+
+var dragStart = { x: 0, y: 0 };
+function startDrag(e, onMove, cls) {
+  e.preventDefault();
+  dragStart = { x: e.clientX, y: e.clientY };
+  var y0 = e.clientY, x0 = e.clientX;
+  if (cls) e.currentTarget.closest('.window').classList.add(cls);
+  var target = e.currentTarget.closest('.window');
+  target.classList.add('dragging');
+  if (target.setPointerCapture) { try { target.setPointerCapture(e.pointerId); } catch (err) {} }
+  function move(ev) { onMove(ev.clientX - x0, ev.clientY - y0); }
+  function up() {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    target.classList.remove('dragging', 'resizing');
+    persistSession();
+  }
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+function winMin() {
+  var a = workArea();
+  return a.w < 640 ? { w: 240, h: 160 } : { w: 320, h: 200 };
+}
+function place(win) {
+  win.el.style.left = win.x + 'px';
+  win.el.style.top = win.y + 'px';
+  win.el.style.width = win.w + 'px';
+  win.el.style.height = win.h + 'px';
+}
+function focus(id) {
+  var win = wins[id]; if (!win) return;
+  focused = id;
+  win.el.style.zIndex = ++zTop;
+  Object.keys(wins).forEach(function (k) {
+    wins[k].el.classList.toggle('inactive', k !== id);
+    wins[k].taskEl.classList.toggle('active', k === id && !wins[k].min);
+  });
+}
+function minimize(id) {
+  var win = wins[id]; if (!win) return;
+  win.min = true;
+  win.el.classList.add('minimized');
+  win.taskEl.classList.remove('active');
+  if (focused === id) focused = null;
+  persistSession();
+}
+function restore(id) {
+  var win = wins[id]; if (!win) return;
+  win.min = false;
+  win.el.classList.remove('minimized');
+}
+function toggleMax(id) {
+  var win = wins[id]; if (!win) return;
+  var a = workArea();
+  if (!win.max) {
+    win.prev = { x: win.x, y: win.y, w: win.w, h: win.h };
+    win.max = true;
+    win.el.classList.add('maximized');
+    win.x = 0; win.y = 0; win.w = a.w; win.h = a.h;
+  } else {
+    win.max = false;
+    win.el.classList.remove('maximized');
+    var p = win.prev || { x: 40, y: 40, w: 760, h: 520 };
+    win.x = p.x; win.y = p.y; win.w = p.w; win.h = p.h;
+  }
+  place(win);
+  persistSession();
+}
+function closeWindow(id, notify) {
+  var win = wins[id]; if (!win) return;
+  win.el.classList.add('closing');
+  if (win.onClose) { try { win.onClose(); } catch (e) { console.warn(e); } }
+  setTimeout(function () {
+    if (win.el.parentNode) win.el.parentNode.removeChild(win.el);
+    if (win.taskEl.parentNode) win.taskEl.parentNode.removeChild(win.taskEl);
+  }, 200);
+  delete wins[id];
+  if (focused === id) focused = null;
+  if (notify) persistSession();
+}
+
+/* 会话持久化：刷新后窗口照旧 */
+function persistSession() {
+  var list = Object.keys(wins).map(function (k) {
+    var w = wins[k];
+    return { app: w.app, x: w.x, y: w.y, w: w.w, h: w.h, max: w.max, min: w.min,
+             state: w.appState ? w.appState() : null };
+  });
+  store(LS.session, list);
+}
+
+/* ---------------------------------------------------------------- 应用注册表 */
+var APPS = {};
+function defineApp(cfg) { APPS[cfg.id] = cfg; }
+
+/* ============================ 设置 ============================ */
+defineApp({
+  id: 'settings', name: '设置', icon: '⚙️', desc: '个性化、系统与存储', w: 820, h: 580, pad: false,
+  launch: function (win, state) {
+    var host = win.body;
+    host.className = 'wbody nopad';
+    var wrap = el('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;height:100%';
+
+    var tabs = el('div', 'ui-tabs');
+    var panes = el('div');
+    panes.style.cssText = 'flex:1;min-height:0;overflow:auto';
+    wrap.appendChild(tabs); wrap.appendChild(panes);
+    host.appendChild(wrap);
+
+    var defs = [
+      { id: 'personal', name: '个性化' },
+      { id: 'system', name: '系统' },
+      { id: 'apps', name: '默认应用' },
+      { id: 'storage', name: '存储' },
+      { id: 'about', name: '关于' }
+    ];
+    var paneMap = {};
+
+    function addPane(def, build) {
+      var b = el('button', 'ui-tab', def.name);
+      b.addEventListener('click', function () { show(def.id); });
+      tabs.appendChild(b);
+      var pane = el('div', 'ui-pane');
+      build(pane);
+      panes.appendChild(pane);
+      paneMap[def.id] = { tab: b, pane: pane };
+    }
+    function show(id) {
+      Object.keys(paneMap).forEach(function (k) {
+        paneMap[k].tab.classList.toggle('on', k === id);
+        paneMap[k].pane.classList.toggle('on', k === id);
+      });
+      win.appState = function () { return { tab: id }; };
+    }
+    function switchItem(label, desc, getVal, onToggle) {
+      var f = el('div', 'field');
+      var row = el('div', 'row between');
+      var left = el('div');
+      left.appendChild(el('label', null, label));
+      left.querySelector('label').style.margin = '0';
+      if (desc) left.appendChild(el('div', 'desc', desc));
+      var sw = el('button', 'switch' + (getVal() ? ' on' : ''));
+      sw.addEventListener('click', function () {
+        onToggle(); sw.classList.toggle('on', getVal());
+        applySettings(); saveSettings();
+      });
+      row.appendChild(left); row.appendChild(sw);
+      f.appendChild(row);
+      return { field: f, sw: sw, refresh: function () { sw.classList.toggle('on', getVal()); } };
+    }
+
+    /* --- 个性化 --- */
+    addPane(defs[0], function (p) {
+      // 壁纸
+      var fw = el('div', 'field');
+      fw.appendChild(el('label', null, '壁纸'));
+      var grid = el('div', 'wall-grid');
+      Object.keys(WALLPAPERS).forEach(function (key) {
+        var d = el('button', 'wall' + (S.wallpaper === key ? ' on' : ''));
+        d.style.background = WALLPAPERS[key].css;
+        d.appendChild(el('span', null, WALLPAPERS[key].name));
+        d.addEventListener('click', function () {
+          S.wallpaper = key; saveSettings(); applySettings();
+          grid.querySelectorAll('.wall').forEach(function (x) { x.classList.remove('on'); });
+          d.classList.add('on');
+        });
+        grid.appendChild(d);
+      });
+      // 自定义壁纸
+      var dc = el('button', 'wall' + (S.wallpaper === 'custom' ? ' on' : ''));
+      dc.style.background = S.customWall && safeUrl(S.customWall) ? 'url("' + S.customWall + '") center/cover' : 'var(--field)';
+      dc.appendChild(el('span', null, '自定义'));
+      dc.addEventListener('click', function () {
+        S.wallpaper = 'custom';
+        if (!S.customWall) { toast('自定义壁纸', '请在下方粘贴图片地址（https 或 data:image）', '🖼️'); }
+        saveSettings(); applySettings();
+        grid.querySelectorAll('.wall').forEach(function (x) { x.classList.remove('on'); });
+        dc.classList.add('on');
+      });
+      grid.appendChild(dc);
+      fw.appendChild(grid);
+      var urlRow = el('div', 'row'); urlRow.style.marginTop = '12px';
+      var urlIn = el('input', 'ipt'); urlIn.placeholder = '图片地址：https://… 或 data:image/png;base64,…';
+      urlIn.value = S.customWall || ''; urlIn.style.userSelect = 'text';
+      var urlBtn = el('button', 'btn ghost', '应用');
+      urlBtn.addEventListener('click', function () {
+        var v = urlIn.value.trim();
+        if (v && !safeUrl(v)) { toast('无法识别', '请填写 http(s) 或 data:image 开头的图片地址。', '⚠️'); return; }
+        S.customWall = v; S.wallpaper = 'custom'; saveSettings(); applySettings();
+        dc.style.background = v ? 'url("' + v + '") center/cover' : 'var(--field)';
+        dc.classList.add('on');
+        grid.querySelectorAll('.wall').forEach(function (x) { x.classList.remove('on'); });
+        dc.classList.add('on');
+        toast('已应用', '自定义壁纸已生效。', '🖼️');
+      });
+      urlRow.appendChild(urlIn); urlRow.appendChild(urlBtn);
+      fw.appendChild(urlRow);
+      fw.appendChild(el('div', 'desc', '支持 http(s) 图片直链或 data:image；留空则不使用。'));
+      p.appendChild(fw);
+
+      // 主题
+      var ft = el('div', 'field');
+      ft.appendChild(el('label', null, '主题模式'));
+      var sel = el('select', 'ipt');
+      [['light', '浅色'], ['dark', '深色'], ['auto', '跟随系统']].forEach(function (o) {
+        var op = el('option', null, o[1]); op.value = o[0];
+        if (S.theme === o[0]) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () {
+        S.theme = sel.value; saveSettings(); applySettings(); syncQuick();
+      });
+      ft.appendChild(sel);
+      p.appendChild(ft);
+
+      // 强调色
+      var fa = el('div', 'field');
+      fa.appendChild(el('label', null, '强调色'));
+      var sws = el('div', 'swatches');
+      [['#4c6ef5', '#7c5cff'], ['#0ea5e9', '#22d3ee'], ['#10b981', '#84cc16'],
+       ['#f59e0b', '#ef4444'], ['#ec4899', '#8b5cf6'], ['#64748b', '#334155'],
+       ['#e11d48', '#f97316'], ['#14b8a6', '#3b82f6']].forEach(function (pair) {
+        var b = el('button', 'swatch' + (S.accent === pair[0] ? ' on' : ''));
+        b.style.background = 'linear-gradient(135deg,' + pair[0] + ',' + pair[1] + ')';
+        b.title = pair[0] + ' → ' + pair[1];
+        b.addEventListener('click', function () {
+          S.accent = pair[0]; S.accent2 = pair[1];
+          saveSettings(); applySettings();
+          sws.querySelectorAll('.swatch').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+        });
+        sws.appendChild(b);
+      });
+      fa.appendChild(sws);
+      p.appendChild(fa);
+
+      // 圆角 / 模糊 / 缩放
+      function slider(label, min, max, val, fmt, onInput) {
+        var f = el('div', 'field');
+        var head = el('div', 'row between');
+        head.appendChild(el('label', null, label));
+        var out = el('b', null, fmt(val));
+        head.appendChild(out);
+        var r = el('input'); r.type = 'range'; r.min = min; r.max = max; r.value = val;
+        r.style.width = '100%';
+        r.addEventListener('input', function () {
+          var v = +r.value; out.textContent = fmt(v); onInput(v);
+        });
+        f.appendChild(head); f.appendChild(r);
+        return f;
+      }
+      p.appendChild(slider('界面圆角', 0, 26, S.radius, function (v) { return v + 'px'; },
+        function (v) { S.radius = v; applySettings(); saveSettings(); }));
+      p.appendChild(slider('毛玻璃强度', 0, 40, S.blur, function (v) { return v + 'px'; },
+        function (v) { S.blur = v; applySettings(); saveSettings(); }));
+      p.appendChild(slider('界面缩放', 85, 125, S.scale, function (v) { return v + '%'; },
+        function (v) { S.scale = v; applySettings(); saveSettings(); }));
+      p.appendChild(slider('桌面亮度', 60, 120, S.brightness, function (v) { return v + '%'; },
+        function (v) { S.brightness = v; applySettings(); saveSettings(); }));
+
+      var sw1 = switchItem('毛玻璃效果', '窗口与任务栏使用背景模糊。', function () { return S.glass; },
+        function () { S.glass = !S.glass; });
+      var sw2 = switchItem('界面动画', '关闭后窗口与面板不再有过渡动画。', function () { return S.motion; },
+        function () { S.motion = !S.motion; });
+      var sw3 = switchItem('显示桌面图标', '在桌面左上角显示应用图标。', function () { return S.icons; },
+        function () { S.icons = !S.icons; });
+      p.appendChild(sw1.field); p.appendChild(sw2.field); p.appendChild(sw3.field);
+    });
+
+    /* --- 系统 --- */
+    addPane(defs[1], function (p) {
+      var f1 = el('div', 'field');
+      f1.appendChild(el('label', null, '时间格式'));
+      var st = el('select', 'ipt');
+      [['true', '24 小时制'], ['false', '12 小时制']].forEach(function (o) {
+        var op = el('option', null, o[1]); op.value = o[0];
+        if (String(S.h24) === o[0]) op.selected = true;
+        st.appendChild(op);
+      });
+      st.addEventListener('change', function () { S.h24 = st.value === 'true'; saveSettings(); tickClock(); syncQuick(); });
+      f1.appendChild(st); p.appendChild(f1);
+
+      p.appendChild(switchItem('显示秒', '任务栏时钟显示秒数。', function () { return S.showSeconds; },
+        function () { S.showSeconds = !S.showSeconds; }).field);
+
+      var f2 = el('div', 'field');
+      f2.appendChild(el('label', null, '用户名'));
+      var un = el('input', 'ipt'); un.value = S.userName; un.maxLength = 24;
+      un.addEventListener('change', function () {
+        S.userName = un.value.trim() || defaults.userName; un.value = S.userName;
+        saveSettings(); paintStart();
+      });
+      f2.appendChild(un); p.appendChild(f2);
+
+      var card = el('div', 'card');
+      card.appendChild(el('h3', null, '窗口布局'));
+      card.appendChild(el('p', null, '把当前打开的窗口、位置与尺寸保存为默认启动布局，下次打开 DSWeb 时自动还原。'));
+      var row = el('div', 'row'); row.style.marginTop = '12px';
+      var b1 = el('button', 'btn', '保存当前布局');
+      b1.addEventListener('click', function () { persistSession(); toast('已保存', '下次启动将还原当前窗口布局。', '💾'); });
+      var b2 = el('button', 'btn ghost', '重置为初始布局');
+      b2.addEventListener('click', function () {
+        if (!confirm('将关闭所有窗口并恢复到默认布局，确定吗？')) return;
+        Object.keys(wins).forEach(function (k) { closeWindow(k); });
+        setTimeout(function () { QUICK_OPEN.slice(0, 2).forEach(function (a) { launchApp(a); }); }, 220);
+      });
+      row.appendChild(b1); row.appendChild(b2);
+      card.appendChild(row); p.appendChild(card);
+
+      var card2 = el('div', 'card');
+      card2.appendChild(el('h3', null, '危险操作'));
+      card2.appendChild(el('p', null, '清空所有窗口布局记录，DSWeb 会以下一次新的会话启动。'));
+      var b3 = el('button', 'btn danger', '清空会话记录');
+      b3.style.marginTop = '12px';
+      b3.addEventListener('click', function () {
+        localStorage.removeItem(LS.session);
+        toast('已清空', '窗口会话记录已清除。', '🧹');
+      });
+      card2.appendChild(b3); p.appendChild(card2);
+    });
+
+    /* --- 默认应用 --- */
+    addPane(defs[2], function (p) {
+      var f = el('div', 'field');
+      f.appendChild(el('label', null, '浏览器主页'));
+      var hp = el('input', 'ipt'); hp.value = S.homePage;
+      var row = el('div', 'row'); row.style.marginTop = '10px';
+      var save = el('button', 'btn', '保存');
+      save.addEventListener('click', function () {
+        var v = hp.value.trim();
+        if (!safeUrl(v)) { toast('地址无效', '请输入 dsweb://home 或 http(s) 地址。', '⚠️'); return; }
+        S.homePage = v; saveSettings(); toast('已保存', '浏览器主页已更新。', '🌐');
+      });
+      row.appendChild(save);
+      var reset = el('button', 'btn ghost', '恢复默认');
+      reset.addEventListener('click', function () { hp.value = defaults.homePage; });
+      row.appendChild(reset);
+      f.appendChild(hp); f.appendChild(row);
+      p.appendChild(f);
+
+      var f2 = el('div', 'field');
+      f2.appendChild(el('label', null, '固定在任务栏的应用'));
+      var hint = el('div', 'desc', 'DSWeb 会自动把常用应用固定到任务栏；在开始菜单中右键任意应用可固定或取消固定。');
+      f2.appendChild(hint);
+      p.appendChild(f2);
+
+      var card = el('div', 'card');
+      card.appendChild(el('h3', null, '全部应用'));
+      var list = el('div'); list.style.marginTop = '10px';
+      Object.keys(APPS).forEach(function (k) {
+        var a = APPS[k];
+        var row = el('div', 'app-row');
+        row.appendChild(el('span', 'glyph', a.icon));
+        var nm = el('div', 'nm'); nm.appendChild(el('b', null, a.name));
+        nm.appendChild(el('div', 'sub', a.desc || ''));
+        row.appendChild(nm);
+        var b = el('button', 'btn ghost', '打开');
+        b.addEventListener('click', function () { launchApp(a.id); });
+        row.appendChild(b);
+        list.appendChild(row);
+      });
+      card.appendChild(list); p.appendChild(card);
+    });
+
+    /* --- 存储 --- */
+    addPane(defs[3], function (p) {
+      var box = el('div', 'card');
+      box.appendChild(el('h3', null, '本地存储占用'));
+      var kvHost = el('div'); kvHost.style.marginTop = '8px';
+      box.appendChild(kvHost);
+      p.appendChild(box);
+
+      function refreshUsage() {
+        kvHost.innerHTML = '';
+        var total = 0;
+        var labels = { settings: '设置', session: '窗口会话', browser: '浏览器数据',
+                       notes: '记事本', recent: '最近使用' };
+        Object.keys(LS).forEach(function (k) {
+          var raw = localStorage.getItem(LS[k]);
+          var bytes = raw ? raw.length : 0;
+          total += bytes;
+          var row = el('div', 'kv');
+          row.appendChild(el('span', null, labels[k] || k));
+          row.appendChild(el('b', null, bytes ? (bytes / 1024).toFixed(2) + ' KB' : '—'));
+          kvHost.appendChild(row);
+        });
+        var all = el('div', 'kv');
+        all.appendChild(el('span', null, '合计'));
+        all.appendChild(el('b', null, (total / 1024).toFixed(2) + ' KB'));
+        kvHost.appendChild(all);
+        var q = el('div', 'kv');
+        q.appendChild(el('span', null, '浏览器配额'));
+        q.appendChild(el('b', null, '约 5 MB（因浏览器而异）'));
+        kvHost.appendChild(q);
+      }
+      refreshUsage();
+
+      var row = el('div', 'row'); row.style.marginTop = '4px';
+      var rb = el('button', 'btn ghost', '重新计算');
+      rb.addEventListener('click', function () { refreshUsage(); toast('已更新', '存储占用已重新统计。', '📊'); });
+      var clr = el('button', 'btn danger', '清除全部 DSWeb 数据');
+      clr.addEventListener('click', function () {
+        if (!confirm('将删除设置、窗口布局、浏览器数据与记事本内容，且不可恢复。确定继续吗？')) return;
+        Object.keys(LS).forEach(function (k) { localStorage.removeItem(LS[k]); });
+        toast('已清除', '所有本地数据已删除，正在重新加载…', '🧨');
+        setTimeout(function () { location.reload(); }, 900);
+      });
+      row.appendChild(rb); row.appendChild(clr);
+      p.appendChild(row);
+
+      var note = el('div', 'card');
+      note.appendChild(el('h3', null, '数据保存在哪里？'));
+      note.appendChild(el('p', null, 'DSWeb 完全运行在你的浏览器中，没有服务器、没有账号。所有内容以 JSON 形式保存在当前站点的 localStorage 里，因此刷新、关闭浏览器再次打开都不会丢失；但清除浏览器数据、使用无痕窗口或更换浏览器/域名后，数据不会跟随。'));
+      p.appendChild(note);
+    });
+
+    /* --- 关于 --- */
+    addPane(defs[4], function (p) {
+      var hero = el('div', 'card');
+      hero.style.textAlign = 'center';
+      var lg = el('div');
+      lg.style.cssText = 'font-size:34px;font-weight:800;letter-spacing:-1px;margin-bottom:4px';
+      lg.appendChild(document.createTextNode('DS'));
+      var em = el('i', null, 'Web'); em.style.cssText = 'font-style:normal;color:var(--accent)';
+      lg.appendChild(em);
+      hero.appendChild(lg);
+      hero.appendChild(el('p', null, '网页版桌面操作系统 · 单文件实现'));
+      p.appendChild(hero);
+
+      var info = el('div', 'card');
+      var ua = navigator.userAgent;
+      var rows = [
+        ['版本', 'DSWeb 1.0'],
+        ['渲染引擎', /Edg\//.test(ua) ? 'Edge (Chromium)' : /Chrome\//.test(ua) ? 'Chrome (Chromium)'
+          : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '未知'],
+        ['平台', navigator.platform || '未知'],
+        ['屏幕', window.screen.width + ' × ' + window.screen.height],
+        ['窗口', window.innerWidth + ' × ' + window.innerHeight],
+        ['逻辑核心', navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' 核' : '未提供'],
+        ['语言', navigator.language || '未知'],
+        ['在线状态', navigator.onLine ? '已联网' : '离线'],
+        ['本地存储', (function () { try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); return '可用'; } catch (e) { return '不可用'; } })()]
+      ];
+      rows.forEach(function (r) {
+        var kv = el('div', 'kv');
+        kv.appendChild(el('span', null, r[0]));
+        kv.appendChild(el('b', null, r[1]));
+        info.appendChild(kv);
+      });
+      p.appendChild(info);
+
+      var tips = el('div', 'card');
+      tips.appendChild(el('h3', null, '键盘快捷键'));
+      [['Ctrl + Esc / Win', '打开开始菜单'],
+       ['Ctrl + Alt + T', '打开终端'],
+       ['Ctrl + Alt + B', '打开浏览器'],
+       ['Esc', '关闭开始菜单 / 右键菜单 / 解锁'],
+       ['双击标题栏', '最大化 / 还原窗口']].forEach(function (k) {
+        var kv = el('div', 'kv');
+        kv.appendChild(el('span', null, k[1]));
+        kv.appendChild(el('b', null, k[0]));
+        tips.appendChild(kv);
+      });
+      p.appendChild(tips);
+    });
+
+    var initial = state && state.tab && paneMap[state.tab] ? state.tab : 'personal';
+    show(initial);
+
+    // 双击标题栏最大化
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+  }
+});
+
+/* ============================ 浏览器 ============================ */
+defineApp({
+  id: 'browser', name: '浏览器', icon: '🌐', desc: '浏览网页与 DSWeb 内部页面', w: 960, h: 620, pad: false,
+  launch: function (win, state) {
+    var saved = load(LS.browser, { history: [], index: -1, last: null });
+    var history = Array.isArray(saved.history) ? saved.history : [];
+    var index = typeof saved.index === 'number' ? saved.index : history.length - 1;
+    if (!history.length) { history = [S.homePage]; index = 0; }
+
+    var host = win.body;
+    host.className = 'wbody nopad';
+    var root = el('div', 'br');
+    host.appendChild(root);
+
+    // 工具栏
+    var bar = el('div', 'br-bar');
+    var back = el('button', 'br-nav'); back.title = '后退'; back.appendChild(svgIcon('M15 18l-6-6 6-6', 16));
+    var fwd = el('button', 'br-nav'); fwd.title = '前进'; fwd.appendChild(svgIcon('M9 6l6 6-6 6', 16));
+    var rel = el('button', 'br-nav'); rel.title = '刷新'; rel.appendChild(svgIcon('M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6', 15));
+    var home = el('button', 'br-nav'); home.title = '主页'; home.appendChild(svgIcon('M3 11l9-8 9 8M6 10v10h12V10', 15));
+    var urlWrap = el('div', 'br-urlwrap');
+    urlWrap.appendChild(el('span', 'lock', '🔒'));
+    var urlIn = el('input', 'br-url'); urlIn.spellcheck = false;
+    var openExt = el('button', 'br-nav'); openExt.title = '在新标签页打开'; openExt.appendChild(svgIcon('M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5', 15));
+    urlWrap.appendChild(urlIn);
+    bar.appendChild(back); bar.appendChild(fwd); bar.appendChild(rel); bar.appendChild(home);
+    bar.appendChild(urlWrap); bar.appendChild(openExt);
+    var loadBar = el('div', 'br-load');
+    var view = el('div', 'br-view');
+    root.appendChild(bar); root.appendChild(loadBar); root.appendChild(view);
+
+    function persist() {
+      store(LS.browser, { history: history, index: index, last: current });
+    }
+    function setLoading(on) {
+      loadBar.style.width = on ? '72%' : '0';
+      if (!on) setTimeout(function () { loadBar.style.width = '0'; }, 220);
+    }
+    function updateNav() {
+      back.disabled = index <= 0;
+      fwd.disabled = index >= history.length - 1;
+    }
+
+    var current = history[index];
+
+    function go(url, push) {
+      var target = safeUrl(url);
+      if (!target) {
+        toast('无法打开的地址', '请输入 http(s) 链接或 dsweb:// 内部页面。', '⚠️');
+        return;
+      }
+      if (push) {
+        history = history.slice(0, index + 1);
+        history.push(target);
+        if (history.length > 60) history.shift();
+        index = history.length - 1;
+      }
+      current = target;
+      urlIn.value = target;
+      win.titleEl.textContent = '浏览器 · ' + prettyName(target);
+      render(target);
+      updateNav(); persist();
+    }
+    function prettyName(u) {
+      if (u === 'dsweb://home' || u === 'about:home') return '新标签页';
+      try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; }
+    }
+
+    function render(u) {
+      view.innerHTML = '';
+      if (u === 'dsweb://home' || u === 'about:home' || u === 'about:blank') { renderHome(); return; }
+      if (u === 'dsweb://history') { renderHistory(); return; }
+      if (u === 'dsweb://settings') { launchApp('settings'); return; }
+      showFrame(u);
+    }
+
+    function showFrame(u) {
+      setLoading(true);
+      var frame = el('iframe');
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.src = u;
+      var loaded = false;
+      frame.addEventListener('load', function () {
+        loaded = true; setLoading(false);
+        // 跨域限制：能 load 但读不到内容时，无法判断是否被拒；仅提示一次
+      });
+      frame.addEventListener('error', function () { fail(u); });
+      view.appendChild(frame);
+      // 超时未 load（通常是被 X-Frame-Options / CSP 拦截）→ 显示友好说明
+      setTimeout(function () { if (!loaded) { setLoading(false); fail(u, true); } }, 6000);
+    }
+
+    function fail(u, blocked) {
+      view.innerHTML = '';
+      var box = el('div', 'br-fail');
+      box.appendChild(el('div', 'big', blocked ? '🛡️' : '📡'));
+      box.appendChild(el('h3', null, blocked ? '这个网站不允许被嵌入显示' : '无法加载该页面'));
+      var p = el('p');
+      p.appendChild(document.createTextNode('多数大型站点（搜索引擎、社交平台等）会通过 '));
+      p.appendChild(el('code', null, 'X-Frame-Options: DENY'));
+      p.appendChild(document.createTextNode(' 或 CSP 禁止其他页面用 iframe 打开它，这是对方服务器的安全策略，DSWeb 无法绕过。'));
+      box.appendChild(p);
+      var p2 = el('p');
+      p2.appendChild(document.createTextNode('目标地址：'));
+      p2.appendChild(el('code', null, u));
+      box.appendChild(p2);
+      var row = el('div', 'row'); row.style.marginTop = '14px';
+      var b1 = el('button', 'btn', '在新标签页打开');
+      b1.addEventListener('click', function () { window.open(u, '_blank', 'noopener'); });
+      var b2 = el('button', 'btn ghost', '返回主页');
+      b2.addEventListener('click', function () { go('dsweb://home', true); });
+      row.appendChild(b1); row.appendChild(b2);
+      box.appendChild(row);
+      view.appendChild(box);
+    }
+
+    function renderHome() {
+      var h = el('div', 'br-home');
+      var lg = el('div', 'br-logo');
+      lg.appendChild(document.createTextNode('DS'));
+      lg.appendChild(el('i', null, 'Web'));
+      lg.appendChild(document.createTextNode(' 浏览器'));
+      h.appendChild(lg);
+      h.appendChild(el('div', 'br-sub', '输入网址或搜索关键词，下面是一些常用站点'));
+      var form = el('div', 'br-search');
+      var inp = el('input'); inp.placeholder = '搜索或输入网址…';
+      var goBtn = el('button', 'btn', '前往');
+      form.appendChild(inp); form.appendChild(goBtn);
+      h.appendChild(form);
+
+      var links = el('div', 'br-links');
+      [['📚', '维基百科', 'https://zh.wikipedia.org/wiki/Wikipedia'],
+       ['🔎', 'Bing 搜索', 'https://www.bing.com'],
+       ['🐍', 'Python 文档', 'https://docs.python.org/zh-cn/3/'],
+       ['📦', 'MDN Web 文档', 'https://developer.mozilla.org/zh-CN/'],
+       ['🟩', 'Node.js', 'https://nodejs.org/zh-cn'],
+       ['🧪', 'Example.com', 'https://example.com'],
+       ['🕘', '浏览历史', 'dsweb://history'],
+       ['🧭', '主页设置', 'dsweb://settings']].forEach(function (it) {
+        var b = el('button', 'br-link');
+        b.appendChild(el('span', 'g', it[0]));
+        b.appendChild(document.createTextNode(it[1]));
+        b.addEventListener('click', function () { go(it[2], true); });
+        links.appendChild(b);
+      });
+      h.appendChild(links);
+      var tip = el('div', 'br-sub');
+      tip.style.marginTop = '22px';
+      tip.textContent = '提示：由于同源策略，部分网站拒绝在 iframe 中显示，DSWeb 会给出提示并提供“在新标签页打开”。';
+      h.appendChild(tip);
+      view.appendChild(h);
+
+      function submit() {
+        var v = inp.value.trim(); if (!v) return;
+        var s = safeUrl(v);
+        if (s) { go(s, true); return; }
+        go('https://www.bing.com/search?q=' + encodeURIComponent(v), true);
+      }
+      goBtn.addEventListener('click', submit);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+      setTimeout(function () { inp.focus(); }, 60);
+    }
+
+    function renderHistory() {
+      var h = el('div', 'br-home');
+      h.appendChild(el('div', 'br-logo', '浏览历史'));
+      h.appendChild(el('div', 'br-sub', '点击任意记录即可重新打开'));
+      var list = el('div');
+      if (!history.length) {
+        var e2 = el('div', 'empty-state'); e2.appendChild(el('div', 'big', '🕘'));
+        e2.appendChild(el('div', null, '还没有浏览记录'));
+        h.appendChild(e2);
+      }
+      history.slice().reverse().forEach(function (u, i) {
+        var row = el('div', 'app-row');
+        row.appendChild(el('span', 'glyph', u.indexOf('dsweb://') === 0 ? '🧩' : '🌐'));
+        var nm = el('div', 'nm'); nm.appendChild(el('b', null, prettyName(u)));
+        nm.appendChild(el('div', 'sub', u));
+        row.appendChild(nm);
+        var b = el('button', 'btn ghost', '打开');
+        b.addEventListener('click', function () { go(u, true); });
+        row.appendChild(b);
+        list.appendChild(row);
+      });
+      h.appendChild(list);
+      var clr = el('button', 'btn ghost', '清空历史');
+      clr.style.marginTop = '14px';
+      clr.addEventListener('click', function () {
+        history = ['dsweb://home']; index = 0; persist(); go('dsweb://home', false);
+        toast('已清空', '浏览历史已删除。', '🧹');
+      });
+      h.appendChild(clr);
+      view.appendChild(h);
+    }
+
+    /* 事件 */
+    urlIn.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var v = urlIn.value.trim(); if (!v) return;
+      var s = safeUrl(v);
+      if (s) go(s, true);
+      else go('https://www.bing.com/search?q=' + encodeURIComponent(v), true);
+    });
+    urlIn.addEventListener('focus', function () { urlIn.select(); });
+    back.addEventListener('click', function () { if (index > 0) { index--; current = history[index]; urlIn.value = current; win.titleEl.textContent = '浏览器 · ' + prettyName(current); render(current); updateNav(); persist(); } });
+    fwd.addEventListener('click', function () { if (index < history.length - 1) { index++; current = history[index]; urlIn.value = current; win.titleEl.textContent = '浏览器 · ' + prettyName(current); render(current); updateNav(); persist(); } });
+    rel.addEventListener('click', function () { render(current); toast('已重新加载', current, '🔄', 1600); });
+    home.addEventListener('click', function () { go(S.homePage, true); });
+    openExt.addEventListener('click', function () {
+      if (current.indexOf('dsweb://') === 0) { toast('内部页面', 'DSWeb 内部页面无法在新标签页打开。', '🧩'); return; }
+      window.open(current, '_blank', 'noopener');
+    });
+
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+    win.appState = function () { return { url: current, history: history.slice(-20), index: Math.max(0, index) }; };
+    win.onClose = persist;
+
+    // 恢复
+    if (state && state.url) {
+      current = safeUrl(state.url) || S.homePage;
+      if (Array.isArray(state.history) && state.history.length) { history = state.history; index = clamp(state.index || 0, 0, history.length - 1); }
+      urlIn.value = current;
+      win.titleEl.textContent = '浏览器 · ' + prettyName(current);
+      render(current);
+    } else {
+      urlIn.value = current;
+      win.titleEl.textContent = '浏览器 · ' + prettyName(current);
+      render(current);
+    }
+    updateNav();
+    persist();
+  }
+});
+
+/* ============================ 记事本 ============================ */
+defineApp({
+  id: 'notes', name: '记事本', icon: '📝', desc: '本地笔记，自动保存', w: 800, h: 560, pad: false,
+  launch: function (win, state) {
+    var notes = load(LS.notes, []);
+    if (!Array.isArray(notes)) notes = [];
+    var curId = (state && state.id) || (notes[0] && notes[0].id) || null;
+    var search = '';
+
+    var host = win.body;
+    host.className = 'wbody nopad';
+    var wrap = el('div', 'note-list');
+    var side = el('div', 'np-side');
+    var edit = el('div', 'np-edit');
+
+    var head = el('div', 'note-toolbar');
+    var tIn = el('input'); tIn.placeholder = '标题'; tIn.style.flex = '1';
+    tIn.style.cssText = 'flex:1;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--field);padding:0 12px;outline:none;user-select:text';
+    head.appendChild(tIn);
+    var bNew = el('button', 'btn', '＋ 新建');
+    var bDel = el('button', 'btn ghost', '删除');
+    head.appendChild(bNew); head.appendChild(bDel);
+
+    var bodyIn = el('textarea');
+    bodyIn.placeholder = '在这里输入内容，自动保存…';
+    edit.appendChild(head); edit.appendChild(bodyIn);
+    wrap.appendChild(side); wrap.appendChild(edit);
+    host.appendChild(wrap);
+
+    function save() {
+      if (!curId) return;
+      var n = notes.find(function (x) { return x.id === curId; });
+      if (!n) return;
+      n.title = tIn.value; n.body = bodyIn.value; n.updatedAt = Date.now();
+      store(LS.notes, notes);
+    }
+    function renderSide() {
+      side.innerHTML = '';
+      var bar = el('div', 'note-toolbar');
+      bar.style.borderBottom = '1px solid var(--line)';
+      var s = el('input', 'ipt'); s.placeholder = '搜索笔记…'; s.value = search;
+      s.style.height = '34px'; s.addEventListener('input', function () { search = s.value; renderSide(); s.focus(); });
+      bar.appendChild(s);
+      side.appendChild(bar);
+
+      var kw = search.trim().toLowerCase();
+      var list = notes.slice().sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })
+        .filter(function (n) {
+          if (!kw) return true;
+          return ((n.title || '') + (n.body || '')).toLowerCase().indexOf(kw) !== -1;
+        });
+      if (!list.length) {
+        var es = el('div', 'empty-state');
+        es.appendChild(el('div', 'big', notes.length ? '🔍' : '📝'));
+        es.appendChild(el('div', null, notes.length ? '没有匹配的笔记' : '还没有笔记'));
+        side.appendChild(es);
+      }
+      list.forEach(function (n) {
+        var it = el('div', 'np-item' + (n.id === curId ? ' on' : ''));
+        it.appendChild(el('b', null, n.title || '（无标题）'));
+        it.appendChild(el('small', null, shortTime(n.updatedAt || n.createdAt || Date.now())));
+        it.addEventListener('click', function () { save(); curId = n.id; renderSide(); loadCur(); });
+        side.appendChild(it);
+      });
+    }
+    function loadCur() {
+      var n = notes.find(function (x) { return x.id === curId; });
+      if (!n) { tIn.value = ''; bodyIn.value = ''; tIn.disabled = true; bodyIn.disabled = true; return; }
+      tIn.disabled = false; bodyIn.disabled = false;
+      tIn.value = n.title || ''; bodyIn.value = n.body || '';
+      win.titleEl.textContent = '记事本 · ' + (n.title || '无标题');
+      win.appState = function () { return { id: curId }; };
+    }
+    function create() {
+      save();
+      var now = Date.now();
+      var n = { id: uid('n'), title: '', body: '', createdAt: now, updatedAt: now };
+      notes.unshift(n); curId = n.id; store(LS.notes, notes);
+      renderSide(); loadCur(); bodyIn.focus();
+    }
+    bNew.addEventListener('click', create);
+    bDel.addEventListener('click', function () {
+      if (!curId) return;
+      var n = notes.find(function (x) { return x.id === curId; });
+      if (!confirm('删除「' + ((n && n.title) || '无标题') + '」？不可恢复。')) return;
+      notes = notes.filter(function (x) { return x.id !== curId; });
+      curId = notes[0] ? notes[0].id : null;
+      store(LS.notes, notes); renderSide(); loadCur();
+      toast('已删除', '笔记已从本地移除。', '🗑️', 2000);
+    });
+    var tmr;
+    function autoSave() {
+      clearTimeout(tmr);
+      tmr = setTimeout(function () {
+        save();
+        var n = notes.find(function (x) { return x.id === curId; });
+        if (n) win.titleEl.textContent = '记事本 · ' + (n.title || '无标题');
+      }, 320);
+    }
+    tIn.addEventListener('input', autoSave);
+    bodyIn.addEventListener('input', autoSave);
+    win.onClose = function () { clearTimeout(tmr); save(); };
+    win.appState = function () { return { id: curId }; };
+
+    if (!notes.length) create(); else { renderSide(); loadCur(); }
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+  }
+});
+
+/* ============================ 计算器 ============================ */
+defineApp({
+  id: 'calc', name: '计算器', icon: '🧮', desc: '标准计算与历史', w: 340, h: 480, pad: false,
+  launch: function (win) {
+    var host = win.body; host.className = 'wbody nopad';
+    var root = el('div', 'calc');
+    var out = el('div', 'calc-out');
+    var ex = el('div', 'ex', '');
+    var rs = el('div', 'rs', '0');
+    out.appendChild(ex); out.appendChild(rs);
+    var keys = el('div', 'calc-keys');
+    root.appendChild(out); root.appendChild(keys);
+    host.appendChild(root);
+
+    var acc = '0', pend = null, op = null, fresh = true, lastOp = null, lastVal = null;
+    function show() { rs.textContent = acc; ex.textContent = pend != null ? (pend + ' ' + (op || '')) : ''; }
+    function calc(a, b, o) {
+      a = parseFloat(a); b = parseFloat(b);
+      switch (o) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '×': return a * b;
+        case '÷': return b === 0 ? NaN : a / b;
+        case '%': return a % b;
+        default: return b;
+      }
+    }
+    function fmtNum(n) {
+      if (!isFinite(n)) return '错误';
+      if (Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-9 && n !== 0)) return n.toExponential(6);
+      var r = Math.round(n * 1e10) / 1e10;
+      return String(r);
+    }
+    function digit(d) {
+      if (fresh) { acc = d === '.' ? '0.' : d; fresh = false; }
+      else {
+        if (d === '.' && acc.indexOf('.') >= 0) return;
+        acc = (acc === '0' && d !== '.') ? d : acc + d;
+      }
+      show();
+    }
+    function setOp(o) {
+      if (op && !fresh) { acc = fmtNum(calc(acc, pend, op)); }
+      pend = acc; op = o; fresh = true; show();
+    }
+    function equals() {
+      if (op == null) return;
+      var v = calc(pend, acc, op);
+      lastOp = op; lastVal = acc;
+      ex.textContent = pend + ' ' + op + ' ' + acc + ' =';
+      acc = fmtNum(v); pend = null; op = null; fresh = true;
+      rs.textContent = acc;
+    }
+    function clearAll() { acc = '0'; pend = null; op = null; fresh = true; show(); }
+    function backspace() {
+      if (fresh) return;
+      acc = acc.length > 1 ? acc.slice(0, -1) : '0';
+      if (acc === '-') acc = '0';
+      show();
+    }
+    function unary(kind) {
+      var v = parseFloat(acc);
+      if (kind === 'neg') acc = fmtNum(-v);
+      if (kind === 'sqrt') acc = v < 0 ? '错误' : fmtNum(Math.sqrt(v));
+      if (kind === 'pct') acc = fmtNum(v / 100);
+      if (kind === 'inv') acc = v === 0 ? '错误' : fmtNum(1 / v);
+      fresh = true; show();
+    }
+
+    var layout = [
+      ['C', 'fn'], ['⌫', 'fn'], ['%', 'op'], ['÷', 'op'],
+      ['7', ''], ['8', ''], ['9', ''], ['×', 'op'],
+      ['4', ''], ['5', ''], ['6', ''], ['−', 'op'],
+      ['1', ''], ['2', ''], ['3', ''], ['+', 'op'],
+      ['±', 'fn'], ['0', ''], ['.', ''], ['=', 'eq']
+    ];
+    layout.forEach(function (k) {
+      var label = k[0] === '−' ? '-' : k[0];
+      var b = el('button', k[1], k[0]);
+      b.addEventListener('click', function () {
+        if (/^[0-9.]$/.test(label)) digit(label);
+        else if (label === 'C') clearAll();
+        else if (label === '⌫') backspace();
+        else if (label === '±') unary('neg');
+        else if (label === '%') setOp('%');
+        else if (label === '=') equals();
+        else setOp(label);
+      });
+      keys.appendChild(b);
+    });
+
+    window.addEventListener('keydown', function onKey(e) {
+      if (!wins[win.id] || focused !== win.id) return;
+      var k = e.key;
+      if (/^[0-9.]$/.test(k)) { digit(k); e.preventDefault(); }
+      else if (k === '+' || k === '-' || k === '*' || k === '/') {
+        setOp(k === '*' ? '×' : k === '/' ? '÷' : k); e.preventDefault();
+      }
+      else if (k === 'Enter' || k === '=') { equals(); e.preventDefault(); }
+      else if (k === 'Backspace') { backspace(); e.preventDefault(); }
+      else if (k === 'Escape') { clearAll(); e.preventDefault(); }
+    });
+    win.onClose = function () { /* 监听器随窗口失效，靠 wins 判断 */ };
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+    show();
+  }
+});
+
+/* ============================ 终端 ============================ */
+defineApp({
+  id: 'terminal', name: '终端', icon: '⌨️', desc: 'DSWeb 命令行', w: 720, h: 440, pad: false,
+  launch: function (win) {
+    var host = win.body; host.className = 'wbody nopad';
+    var term = el('div', 'term');
+    host.appendChild(term);
+    var history = [], hi = -1;
+
+    function print(text, cls) {
+      var line = el('div', cls || null, text);
+      term.appendChild(line);
+      term.scrollTop = term.scrollHeight;
+      return line;
+    }
+    print('DSWeb 终端 v1.0 · 输入 help 查看可用命令', 'di');
+    print('');
+
+    var line = el('div', 'term-line');
+    line.appendChild(el('span', 'in', 'DS>'));
+    var input = el('input'); input.spellcheck = false;
+    line.appendChild(input);
+    term.appendChild(line);
+
+    function run(cmd) {
+      var parts = cmd.trim().split(/\s+/);
+      var c = (parts[0] || '').toLowerCase();
+      var arg = parts.slice(1).join(' ');
+      switch (c) {
+        case '': break;
+        case 'help':
+          print('可用命令：', 'di');
+          [['help', '显示本帮助'], ['apps', '列出所有应用'], ['open <id>', '打开应用（browser/notes/calc/settings/terminal/about）'],
+           ['theme <light|dark|auto>', '切换主题'], ['accent <#hex>', '设置强调色'], ['wall <名称>', '切换壁纸：' + Object.keys(WALLPAPERS).join(', ')],
+           ['ls', '列出本地存储占用'], ['echo <文本>', '回显文本'], ['whoami', '显示当前用户'], ['ver', '显示版本'],
+           ['date', '显示当前时间'], ['close', '关闭终端'], ['clear', '清屏']].forEach(function (r) {
+            print('  ' + r[0].padEnd(24, ' ') + r[1]);
+          });
+          break;
+        case 'apps':
+          Object.keys(APPS).forEach(function (k) { print('  ' + APPS[k].icon + '  ' + k.padEnd(12, ' ') + APPS[k].name, 'di'); });
+          break;
+        case 'open':
+          if (APPS[arg]) { launchApp(arg); print('已启动：' + APPS[arg].name, 'di'); }
+          else print('未找到应用：' + (arg || '(空)'), 'er');
+          break;
+        case 'theme':
+          if (['light', 'dark', 'auto'].indexOf(arg) >= 0) { S.theme = arg; saveSettings(); applySettings(); syncQuick(); print('主题已切换为 ' + arg, 'di'); }
+          else print('用法：theme light|dark|auto', 'er');
+          break;
+        case 'accent':
+          if (/^#[0-9a-f]{6}$/i.test(arg)) { S.accent = arg; saveSettings(); applySettings(); print('强调色已设为 ' + arg, 'di'); }
+          else print('用法：accent #4c6ef5', 'er');
+          break;
+        case 'wall':
+          if (WALLPAPERS[arg]) { S.wallpaper = arg; saveSettings(); applySettings(); print('壁纸已切换为 ' + WALLPAPERS[arg].name, 'di'); }
+          else print('可用壁纸：' + Object.keys(WALLPAPERS).join(', '), 'er');
+          break;
+        case 'ls':
+          Object.keys(LS).forEach(function (k) {
+            var raw = localStorage.getItem(LS[k]);
+            print('  ' + k.padEnd(10, ' ') + (raw ? (raw.length / 1024).toFixed(2) + ' KB' : '—'));
+          });
+          break;
+        case 'echo': print(arg); break;
+        case 'whoami': print(S.userName); break;
+        case 'ver': print('DSWeb 1.0 · 单文件网页桌面'); break;
+        case 'date': print(new Date().toLocaleString('zh-CN')); break;
+        case 'clear': term.innerHTML = ''; term.appendChild(line); break;
+        case 'close': closeWindow(win.id, true); break;
+        default: print('未知命令：' + c + '（试试 help）', 'er');
+      }
+    }
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var v = input.value;
+        print('DS> ' + v, 'in');
+        if (v.trim()) { history.push(v); hi = history.length; }
+        input.value = '';
+        run(v);
+        print('');
+        term.scrollTop = term.scrollHeight;
+      } else if (e.key === 'ArrowUp') {
+        if (hi > 0) { hi--; input.value = history[hi] || ''; }
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        if (hi < history.length - 1) { hi++; input.value = history[hi] || ''; }
+        else { hi = history.length; input.value = ''; }
+        e.preventDefault();
+      }
+    });
+    term.addEventListener('click', function () { input.focus(); });
+    setTimeout(function () { input.focus(); }, 80);
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+  }
+});
+
+/* ============================ 关于 ============================ */
+defineApp({
+  id: 'about', name: '关于 DSWeb', icon: 'ℹ️', desc: '版本与系统信息', w: 620, h: 500, pad: true,
+  launch: function (win) {
+    var b = win.body;
+    var hero = el('div', 'card'); hero.style.textAlign = 'center';
+    var lg = el('div');
+    lg.style.cssText = 'font-size:38px;font-weight:800;letter-spacing:-1.5px';
+    lg.appendChild(document.createTextNode('DS'));
+    var i = el('i', null, 'Web'); i.style.cssText = 'font-style:normal;color:var(--accent)';
+    lg.appendChild(i);
+    hero.appendChild(lg);
+    hero.appendChild(el('p', null, '一个用纯 HTML + CSS + JavaScript 写成的网页桌面系统。没有构建工具、没有依赖、没有服务器。'));
+    b.appendChild(hero);
+
+    var c = el('div', 'card');
+    c.appendChild(el('h3', null, '已内置的应用'));
+    Object.keys(APPS).forEach(function (k) {
+      var row = el('div', 'app-row');
+      row.appendChild(el('span', 'glyph', APPS[k].icon));
+      var nm = el('div', 'nm'); nm.appendChild(el('b', null, APPS[k].name));
+      nm.appendChild(el('div', 'sub', APPS[k].desc || ''));
+      row.appendChild(nm);
+      var btn = el('button', 'btn ghost', '打开');
+      btn.addEventListener('click', function () { launchApp(k); });
+      row.appendChild(btn);
+      c.appendChild(row);
+    });
+    b.appendChild(c);
+
+    var d = el('div', 'card');
+    d.appendChild(el('h3', null, '设计要点'));
+    ['窗口管理器：指针事件驱动的拖拽与八向缩放，位置尺寸写入 localStorage',
+     '会话持久化：刷新后自动还原所有窗口与应用内部状态',
+     '安全性：所有用户内容经 textContent 写入，链接经协议白名单校验',
+     '主题系统：CSS 变量 + data-theme，支持浅色/深色/跟随系统',
+     '零依赖：单文件约 6 万字符，直接双击即可运行'].forEach(function (t) {
+      var row = el('div', 'row'); row.style.margin = '8px 0';
+      row.appendChild(el('span', null, '•'));
+      var p = el('div', null, t); p.style.cssText = 'font-size:12.5px;color:var(--muted);line-height:1.6';
+      row.appendChild(p);
+      d.appendChild(row);
+    });
+    b.appendChild(d);
+    win.titleEl.addEventListener('dblclick', function () { toggleMax(win.id); });
+  }
+});
+
+/* ---------------------------------------------------------------- 启动应用 */
+function launchApp(id, state) {
+  var app = APPS[id];
+  if (!app) { toast('找不到应用', '没有名为 ' + id + ' 的应用。', '⚠️'); return null; }
+  // 已经打开则聚焦
+  var open = Object.keys(wins).filter(function (k) { return wins[k].app === id; })[0];
+  if (open) { restore(open); focus(open); return wins[open]; }
+  var win = makeWindow({
+    app: id, title: app.icon + ' ' + app.name, icon: app.icon,
+    w: app.w, h: app.h, pad: app.pad
+  });
+  win.titleEl.textContent = app.name;
+  try { app.launch(win, state); }
+  catch (err) { console.error(err); win.body.textContent = '应用启动失败：' + err.message; }
+  pushRecent(id);
+  return win;
+}
+
+/* ---------------------------------------------------------------- 最近使用 */
+var recent = load(LS.recent, []);
+function pushRecent(id) {
+  recent = [id].concat(recent.filter(function (x) { return x !== id; })).slice(0, 8);
+  store(LS.recent, recent);
+  paintStart();
+}
+
+/* ---------------------------------------------------------------- 开始菜单 */
+var pins = load('dsweb.pins.v1', QUICK_OPEN.slice());
+if (!Array.isArray(pins) || !pins.length) pins = QUICK_OPEN.slice();
+
+function tile(app) {
+  var t = el('button', 'app-tile');
+  t.appendChild(el('span', 'glyph', app.icon));
+  t.appendChild(el('span', 'nm', app.name));
+  t.addEventListener('click', function () { closeStart(); launchApp(app.id); });
+  t.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    var on = pins.indexOf(app.id) >= 0;
+    openCtx(e.clientX, e.clientY, [
+      { label: '打开', icon: '▶️', run: function () { closeStart(); launchApp(app.id); } },
+      { label: on ? '从开始菜单取消固定' : '固定到开始菜单', icon: on ? '📌' : '📍', run: function () {
+        pins = on ? pins.filter(function (x) { return x !== app.id; }) : pins.concat(app.id);
+        store('dsweb.pins.v1', pins); paintStart();
+        toast(on ? '已取消固定' : '已固定', app.name, '📌', 1800);
+      } }
+    ]);
+  });
+  return t;
+}
+function row(app) {
+  var r = el('button', 'app-row');
+  r.appendChild(el('span', 'glyph', app.icon));
+  var nm = el('div', 'nm'); nm.appendChild(el('b', null, app.name));
+  nm.appendChild(el('div', 'sub', app.desc || ''));
+  r.appendChild(nm);
+  r.appendChild(el('span', 'badge', '打开'));
+  r.addEventListener('click', function () { closeStart(); launchApp(app.id); });
+  return r;
+}
+function paintStart() {
+  var grid = $('pinGrid'); grid.innerHTML = '';
+  pins.filter(function (p) { return APPS[p]; }).forEach(function (p) { grid.appendChild(tile(APPS[p])); });
+
+  var rec = $('recList'); rec.innerHTML = '';
+  var recApps = recent.filter(function (p) { return APPS[p]; }).slice(0, 3);
+  $('recTitle').style.display = recApps.length ? '' : 'none';
+  recApps.forEach(function (p) { rec.appendChild(row(APPS[p])); });
+
+  $('allTitle').style.display = 'none';
+  $('allList').innerHTML = '';
+  var whoName = $('userBtn').querySelector('span:last-child');
+  if (whoName) whoName.textContent = S.userName;
+}
+function filterStart(kw) {
+  var q = kw.trim().toLowerCase();
+  var noRes = $('noResult'), text = $('noResultText');
+  ['pinGrid', 'recList', 'allList'].forEach(function (id) { $(id).innerHTML = ''; });
+  if (!q) { paintStart(); $('recTitle').style.display = recent.length ? '' : 'none'; $('noResult').style.display = 'none'; return; }
+  $('recTitle').style.display = 'none';
+  $('allTitle').style.display = 'none';
+  var hits = Object.keys(APPS).filter(function (k) {
+    var a = APPS[k];
+    return (a.name + ' ' + (a.desc || '') + ' ' + k).toLowerCase().indexOf(q) !== -1;
+  });
+  if (!hits.length) { $('noResult').style.display = ''; text.textContent = '没有找到与「' + kw.trim() + '」匹配的应用'; return; }
+  $('noResult').style.display = 'none';
+  hits.forEach(function (k) { $('pinGrid').appendChild(row(APPS[k])); });
+}
+var startOpen = false;
+function openStart() {
+  startOpen = true;
+  $('start').classList.add('open'); $('startBtn').classList.add('on');
+  $('startSearch').value = ''; filterStart('');
+  paintStart();
+  setTimeout(function () { $('startSearch').focus(); }, 120);
+}
+function closeStart() {
+  startOpen = false;
+  $('start').classList.remove('open'); $('startBtn').classList.remove('on');
+}
+function toggleStart() { startOpen ? closeStart() : openStart(); }
+$('startBtn').addEventListener('click', function (e) { e.stopPropagation(); toggleStart(); });
+$('start').addEventListener('click', function (e) { e.stopPropagation(); });
+$('startSearch').addEventListener('input', function (e) { filterStart(e.target.value); });
+$('startSearch').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    var first = $('pinGrid').querySelector('.app-tile, .app-row');
+    if (first) first.click();
+  }
+});
+var allAppsBtn = document.querySelector('#start .sec-title button');
+if (allAppsBtn) allAppsBtn.addEventListener('click', function () {
+  $('allTitle').style.display = '';
+  var list = $('allList'); list.innerHTML = '';
+  Object.keys(APPS).sort(function (a, b) { return APPS[a].name.localeCompare(APPS[b].name, 'zh'); })
+    .forEach(function (k) { list.appendChild(row(APPS[k])); });
+  $('startScroll').scrollTop = $('startScroll').scrollHeight;
+});
+$('quick').addEventListener('click', function (e) { e.stopPropagation(); });
+
+/* 电源菜单 */
+$('powerBtn').addEventListener('click', function (e) {
+  e.stopPropagation();
+  var r = $('powerBtn').getBoundingClientRect();
+  openCtx(r.left - 150, r.top - 130, [
+    { label: '锁定', icon: '🔒', run: lockScreen },
+    { label: '重启 DSWeb', icon: '🔄', run: function () {
+        localStorage.removeItem(LS.session);
+        toast('正在重启', '正在重新加载 DSWeb…', '🔄', 1200);
+        setTimeout(function () { location.reload(); }, 700);
+      } },
+    { label: '关机（关闭所有窗口）', icon: '⏻', run: shutdown }
+  ]);
+});
+$('userBtn').addEventListener('click', function () { closeStart(); launchApp('settings'); });
+
+/* ---------------------------------------------------------------- 快速设置面板 */
+function syncQuick() {
+  var dark = themeMode() === 'dark';
+  $('qTheme').classList.toggle('on', dark);
+  $('qThemeV').textContent = dark ? '已开启' : '已关闭';
+  $('qBlur').classList.toggle('on', S.glass);
+  $('qBlurV').textContent = S.glass ? '已开启' : '已关闭';
+  $('qMotion').classList.toggle('on', S.motion);
+  $('qMotionV').textContent = S.motion ? '已开启' : '已关闭';
+  $('qFull').classList.toggle('on', !!document.fullscreenElement);
+  $('qFullV').textContent = document.fullscreenElement ? '已开启' : '已关闭';
+  $('qBright').value = S.brightness; $('qBrightV').textContent = S.brightness + '%';
+  $('qScale').value = S.scale; $('qScaleV').textContent = S.scale + '%';
+  $('trayIcons').textContent = (dark ? '🌙' : '🔆') + (navigator.onLine ? ' 📶' : ' ✈️');
+}
+$('qTheme').addEventListener('click', function () { S.theme = themeMode() === 'dark' ? 'light' : 'dark'; saveSettings(); applySettings(); syncQuick(); });
+$('qBlur').addEventListener('click', function () { S.glass = !S.glass; saveSettings(); applySettings(); syncQuick(); });
+$('qMotion').addEventListener('click', function () { S.motion = !S.motion; saveSettings(); applySettings(); syncQuick(); });
+$('qFull').addEventListener('click', function () {
+  try {
+    if (document.fullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+    } else if (document.documentElement.requestFullscreen) {
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function () { toast('无法进入全屏', '浏览器拒绝了全屏请求。', '⛶'); });
+    } else {
+      toast('不支持全屏', '当前浏览器没有提供全屏 API。', '⛶');
+    }
+  } catch (err) { toast('无法进入全屏', String(err.message || err), '⛶'); }
+  setTimeout(syncQuick, 260);
+});
+$('qBright').addEventListener('input', function (e) { S.brightness = +e.target.value; $('qBrightV').textContent = S.brightness + '%'; applySettings(); saveSettings(); });
+$('qScale').addEventListener('input', function (e) { S.scale = +e.target.value; $('qScaleV').textContent = S.scale + '%'; applySettings(); saveSettings(); });
+$('quick').addEventListener('click', function (e) {
+  var t = e.target.closest('[data-open]');
+  if (t) { closeQuick(); launchApp(t.dataset.open); }
+});
+var quickOpen = false;
+function openQuick() { quickOpen = true; $('quick').classList.add('open'); syncQuick(); }
+function closeQuick() { quickOpen = false; $('quick').classList.remove('open'); }
+$('trayQuick').addEventListener('click', function (e) { e.stopPropagation(); quickOpen ? closeQuick() : openQuick(); });
+$('quick').addEventListener('click', function (e) { e.stopPropagation(); });
+
+/* ---------------------------------------------------------------- 右键菜单 */
+function openCtx(x, y, items) {
+  var m = $('ctxmenu');
+  m.innerHTML = '';
+  items.forEach(function (it) {
+    if (it.sep) { m.appendChild(el('div', 'ctx-sep')); return; }
+    var b = el('button', 'ctx-item');
+    if (it.icon) b.appendChild(el('span', null, it.icon));
+    b.appendChild(el('span', null, it.label));
+    if (it.key) b.appendChild(el('span', 'k', it.key));
+    b.addEventListener('click', function () { closeCtx(); if (it.run) it.run(); });
+    m.appendChild(b);
+  });
+  m.classList.add('open');
+  var r = m.getBoundingClientRect();
+  m.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
+  m.style.top = Math.min(y, window.innerHeight - r.height - 8) + 'px';
+}
+function closeCtx() { $('ctxmenu').classList.remove('open'); }
+$('ctxmenu').addEventListener('click', function (e) { e.stopPropagation(); });
+
+/* ---------------------------------------------------------------- 桌面图标 */
+var DESKTOP_ICONS = ['settings', 'browser', 'notes', 'calc', 'terminal', 'about'];
+function paintIcons() {
+  var host = $('icons'); host.innerHTML = '';
+  DESKTOP_ICONS.filter(function (i) { return APPS[i]; }).forEach(function (id) {
+    var a = APPS[id];
+    var d = el('div', 'dicon');
+    d.appendChild(el('span', 'glyph', a.icon));
+    d.appendChild(el('span', 'label', a.name));
+    d.addEventListener('click', function (e) {
+      e.stopPropagation();
+      host.querySelectorAll('.dicon').forEach(function (x) { x.classList.remove('sel'); });
+      d.classList.add('sel');
+    });
+    d.addEventListener('dblclick', function () { launchApp(id); });
+    host.appendChild(d);
+  });
+}
+
+/* 桌面右键 */
+$('desktop').addEventListener('contextmenu', function (e) {
+  if (e.target.closest('.window')) return;
+  e.preventDefault();
+  var items = [
+    { label: '刷新桌面', icon: '🔄', run: function () { paintIcons(); toast('已刷新', '桌面图标已重建。', '🔄', 1500); } },
+    { sep: true },
+    { label: '打开终端', icon: '⌨️', run: function () { launchApp('terminal'); } },
+    { label: '任务管理器', icon: '📋', run: function () {
+        var lines = Object.keys(wins).map(function (k) { return wins[k].icon + ' ' + APPS[wins[k].app].name; });
+        toast('正在运行 ' + lines.length + ' 个窗口', lines.join('、') || '无', '📋', 4000);
+      } },
+    { sep: true },
+    { label: '个性化设置', icon: '🎨', run: function () { launchApp('settings'); } },
+    { label: '更换壁纸', icon: '🖼️', run: function () {
+        var keys = Object.keys(WALLPAPERS);
+        S.wallpaper = keys[(keys.indexOf(S.wallpaper) + 1) % keys.length];
+        saveSettings(); applySettings();
+        toast('壁纸已更换', WALLPAPERS[S.wallpaper].name, '🖼️', 1800);
+      } }
+  ];
+  openCtx(e.clientX, e.clientY, items);
+});
+$('desktop').addEventListener('click', function (e) {
+  if (e.target.closest('.window')) return;
+  $('icons').querySelectorAll('.dicon').forEach(function (x) { x.classList.remove('sel'); });
+  closeStart(); closeQuick(); closeCtx();
+});
+
+/* ---------------------------------------------------------------- 时钟 */
+function tickClock() {
+  var d = new Date();
+  var h = d.getHours(), m = pad2(d.getMinutes()), s = pad2(d.getSeconds());
+  var txt;
+  if (S.h24) txt = pad2(h) + ':' + m;
+  else { var ap = h < 12 ? '上午' : '下午'; var h12 = h % 12 || 12; txt = ap + ' ' + h12 + ':' + m; }
+  if (S.showSeconds) txt += ':' + s;
+  $('clock').textContent = txt;
+  $('date').textContent = d.getFullYear() + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate());
+  $('qClock').textContent = txt;
+  $('qDate').textContent = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  $('lockClock').textContent = pad2(h) + ':' + m;
+}
+setInterval(tickClock, 1000); tickClock();
+
+/* ---------------------------------------------------------------- 锁屏 / 关机 */
+var locked = false;
+function lockScreen() {
+  locked = true;
+  $('overlay-screen').classList.add('on');
+  $('lockTip').textContent = '已锁定 · 点击任意位置或按 Esc 解锁';
+  $('lockBtn').textContent = '返回桌面';
+}
+function shutdown() {
+  Object.keys(wins).forEach(function (k) { closeWindow(k); });
+  setTimeout(function () {
+    $('overlay-screen').classList.add('on');
+    $('lockTip').textContent = 'DSWeb 已关机 · 所有窗口已关闭';
+    $('lockBtn').textContent = '重新启动';
+    $('lockBtn').dataset.mode = 'boot';
+  }, 260);
+}
+function unlock() {
+  if (!locked && $('lockBtn').dataset.mode !== 'boot') return;
+  if ($('lockBtn').dataset.mode === 'boot') {
+    delete $('lockBtn').dataset.mode;
+    location.reload();
+    return;
+  }
+  locked = false;
+  $('overlay-screen').classList.remove('on');
+}
+$('lockBtn').addEventListener('click', function (e) { e.stopPropagation(); unlock(); });
+$('overlay-screen').addEventListener('click', unlock);
+
+/* ---------------------------------------------------------------- 全局事件 */
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('#start') && !e.target.closest('#startBtn')) closeStart();
+  if (!e.target.closest('#quick') && !e.target.closest('#trayQuick')) closeQuick();
+  if (!e.target.closest('#ctxmenu')) closeCtx();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    if ($('ctxmenu').classList.contains('open')) { closeCtx(); return; }
+    if (quickOpen) { closeQuick(); return; }
+    if (startOpen) { closeStart(); return; }
+    if (locked) { unlock(); return; }
+  }
+  // Ctrl+Esc 或 Win 键 → 开始菜单
+  if ((e.ctrlKey && e.key === 'Escape') || e.key === 'Meta') { e.preventDefault(); toggleStart(); return; }
+  if (e.ctrlKey && e.altKey) {
+    var k = e.key.toLowerCase();
+    if (k === 't') { e.preventDefault(); launchApp('terminal'); }
+    if (k === 'b') { e.preventDefault(); launchApp('browser'); }
+    if (k === 'n') { e.preventDefault(); launchApp('notes'); }
+    if (k === 's') { e.preventDefault(); launchApp('settings'); }
+  }
+});
+window.addEventListener('resize', function () {
+  var a = workArea();
+  Object.keys(wins).forEach(function (k) {
+    var w = wins[k];
+    if (w.max) { w.w = a.w; w.h = a.h; place(w); }
+    else {
+      var nw = Math.min(w.w, a.w - 4), nh = Math.min(w.h, a.h - 4);
+      w.w = Math.max(nw, winMin().w); w.h = Math.max(nh, winMin().h);
+      w.x = clamp(w.x, 0, Math.max(0, a.w - w.w));
+      w.y = clamp(w.y, 0, Math.max(0, a.h - w.h));
+      place(w);
+    }
+  });
+});
+window.addEventListener('storage', function (e) {
+  if (!e.key) return;
+  if (e.key === LS.settings) {
+    S = Object.assign({}, defaults, load(LS.settings, {}));
+    applySettings(); syncQuick(); paintStart();
+    toast('设置已同步', '另一个窗口修改了设置。', '⚙️', 2200);
+  }
+});
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if (S.theme === 'auto') { applySettings(); syncQuick(); }
+  });
+}
+
+/* ---------------------------------------------------------------- 启动流程 */
+function boot() {
+  applySettings();
+  syncQuick();
+  paintStart();
+  paintIcons();
+
+  // 还原上次会话
+  var session = load(LS.session, null);
+  if (Array.isArray(session) && session.length) {
+    session.forEach(function (w) {
+      if (!APPS[w.app]) return;
+      var win = launchApp(w.app, w.state);
+      if (!win) return;
+      win.x = w.x; win.y = w.y; win.w = w.w; win.h = w.h;
+      var a = workArea();
+      win.x = clamp(win.x, 0, Math.max(0, a.w - 60));
+      win.y = clamp(win.y, 0, Math.max(0, a.h - 40));
+      place(win);
+      if (w.max) toggleMax(win.id);
+      if (w.min) minimize(win.id);
+    });
+    // 恢复的窗口不要抢占最近使用记录顺序
+    setTimeout(function () { paintStart(); }, 60);
+  } else {
+    // 首次启动：给一个漂亮的默认桌面
+    launchApp('browser');
+    launchApp('notes');
+  }
+
+  setTimeout(function () {
+    $('boot').classList.add('off');
+    setTimeout(function () { $('boot').style.display = 'none'; }, 520);
+    toast('欢迎使用 DSWeb', '桌面、开始菜单、设置与浏览器均已就绪。试试右键桌面。', '👋', 4200);
+  }, 700);
+}
+
+try { boot(); }
+catch (err) {
+  console.error(err);
+  document.body.innerHTML = '';
+  var box = document.createElement('div');
+  box.style.cssText = 'padding:40px;font-family:system-ui;color:#fff;background:#12141c;height:100%';
+  box.textContent = 'DSWeb 启动失败：' + err.message;
+  document.body.appendChild(box);
+}
+})();
+</script>
+</body>
+</html>
