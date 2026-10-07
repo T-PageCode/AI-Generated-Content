@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>备忘录</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --panel:#ffffff;
+    --text:#1f2430;
+    --muted:#7a839a;
+    --line:#e6e9f2;
+    --brand:#4c6ef5;
+    --brand-soft:#edf1ff;
+    --danger:#e5484d;
+    --shadow:0 6px 24px rgba(24,39,75,.08);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:920px;margin:0 auto;padding:28px 18px 60px}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  h1{margin:0;font-size:24px;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+  h1 .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+  .counter{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+    padding:6px 12px;border-radius:999px;box-shadow:var(--shadow)}
+
+  /* 输入区 */
+  .editor{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px;margin-top:20px}
+  .editor input[type=text], .editor textarea{
+    width:100%;border:none;outline:none;background:transparent;color:var(--text);
+    font-family:inherit;font-size:15px;resize:vertical;
+  }
+  .editor input[type=text]{font-size:17px;font-weight:600;padding:4px 2px 10px}
+  .editor textarea{min-height:88px;line-height:1.6;padding:2px}
+  .editor input::placeholder,.editor textarea::placeholder{color:#b3bacb;font-weight:400}
+  .editor-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border-top:1px solid var(--line);margin-top:12px;padding-top:12px;flex-wrap:wrap}
+  .hint{font-size:12px;color:var(--muted)}
+  .btns{display:flex;gap:8px}
+
+  button{font-family:inherit;font-size:14px;border-radius:10px;border:1px solid transparent;
+    padding:9px 16px;cursor:pointer;transition:.15s;background:var(--brand);color:#fff;font-weight:500}
+  button:hover{filter:brightness(1.06)}
+  button:active{transform:translateY(1px)}
+  button.ghost{background:transparent;color:var(--muted);border-color:var(--line)}
+  button.ghost:hover{color:var(--text);background:#f7f8fc}
+  button:disabled{opacity:.45;cursor:not-allowed}
+
+  /* 工具栏 */
+  .toolbar{display:flex;gap:10px;align-items:center;margin-top:22px;flex-wrap:wrap}
+  .search{position:relative;flex:1;min-width:200px}
+  .search input{width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);font-size:14px;font-family:inherit;outline:none;color:var(--text)}
+  .search input:focus{border-color:#c3cdf7;box-shadow:0 0 0 3px var(--brand-soft)}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.45}
+  .filters{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .filters button{background:transparent;color:var(--muted);border:none;border-radius:0;padding:10px 14px;font-weight:500}
+  .filters button.active{background:var(--brand);color:#fff}
+
+  /* 列表 */
+  .list{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;
+    animation:in .18s ease-out}
+  @keyframes in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .note.pinned{border-left-color:#f5a524;background:linear-gradient(180deg,#fffdf7,#fff)}
+  .note-head{display:flex;align-items:flex-start;gap:10px}
+  .note-title{font-size:16px;font-weight:600;flex:1;word-break:break-word;line-height:1.4}
+  .note-title.empty{color:#b3bacb;font-weight:400}
+  .note-body{margin:8px 0 0;font-size:14px;line-height:1.7;color:#3d4457;
+    white-space:pre-wrap;word-break:break-word}
+  .note-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);flex-wrap:wrap}
+  .time{font-size:12px;color:var(--muted)}
+  .actions{display:flex;gap:6px}
+  .icon{background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:5px 10px;font-size:12.5px;border-radius:8px}
+  .icon:hover{background:#f7f8fc;color:var(--text)}
+  .icon.pin.on{color:#b26b00;border-color:#f7d9a0;background:#fff7e6}
+  .icon.del:hover{color:#fff;background:var(--danger);border-color:var(--danger)}
+
+  .empty{text-align:center;padding:56px 20px;color:var(--muted)}
+  .empty .big{font-size:40px;margin-bottom:10px}
+  .empty p{margin:6px 0;font-size:14px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:#1f2430;color:#fff;font-size:13px;padding:10px 18px;border-radius:10px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:9}
+  .toast.show{opacity:.95;transform:translate(-50%,0)}
+  @media (max-width:520px){
+    .app{padding:18px 12px 50px}
+    h1{font-size:20px}
+    .editor-foot{flex-direction:column;align-items:stretch}
+    .btns{justify-content:flex-end}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><span class="dot"></span>我的备忘录</h1>
+    <div class="counter" id="counter">共 0 条</div>
+  </header>
+
+  <!-- 新建 / 编辑 -->
+  <section class="editor">
+    <input type="text" id="title" placeholder="标题（可留空）" maxlength="120">
+    <textarea id="body" placeholder="写点什么吧……（Ctrl + Enter 快速保存）" maxlength="5000"></textarea>
+    <div class="editor-foot">
+      <span class="hint" id="editHint">数据保存在浏览器本地（localStorage），刷新不丢失</span>
+      <div class="btns">
+        <button class="ghost" id="cancelBtn" style="display:none">取消编辑</button>
+        <button id="saveBtn">保存备忘录</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="text" id="search" placeholder="搜索标题或内容…">
+    </div>
+    <div class="filters" id="filters">
+      <button data-view="all" class="active">全部</button>
+      <button data-view="pinned">置顶</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" style="display:none">
+    <div class="big">📝</div>
+    <p id="emptyText">还没有备忘录，在上方写下第一条吧</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'memo.notes.v1';   // localStorage 键名
+  var notes = [];                       // 全部备忘录
+  var editingId = null;                 // 正在编辑的 id
+  var view = 'all';                     // all | pinned
+  var keyword = '';
+
+  // ---------- 存储 ----------
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var data = raw ? JSON.parse(raw) : [];
+      notes = Array.isArray(data) ? data.filter(function (n) {
+        return n && typeof n === 'object' && n.id;
+      }) : [];
+    } catch (e) {
+      console.warn('读取本地数据失败：', e);
+      notes = [];
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      return true;
+    } catch (e) {
+      alert('保存失败：本地存储空间可能已满或被浏览器禁用。');
+      console.warn(e);
+      return false;
+    }
+  }
+
+  // ---------- 工具 ----------
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function fmt(ts) {
+    var d = new Date(ts);
+    var p = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+           ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 1600);
+  }
+
+  function sorted(list) {
+    return list.slice().sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+  }
+
+  // ---------- 渲染 ----------
+  var listEl = document.getElementById('list');
+  var emptyEl = document.getElementById('empty');
+  var emptyTextEl = document.getElementById('emptyText');
+  var counterEl = document.getElementById('counter');
+
+  function render() {
+    var kw = keyword.trim().toLowerCase();
+    var filtered = notes.filter(function (n) {
+      if (view === 'pinned' && !n.pinned) return false;
+      if (!kw) return true;
+      return ((n.title || '') + ' ' + (n.body || '')).toLowerCase().indexOf(kw) !== -1;
+    });
+
+    listEl.innerHTML = '';
+    var ordered = sorted(filtered);
+
+    ordered.forEach(function (n) {
+      var card = document.createElement('article');
+      card.className = 'note' + (n.pinned ? ' pinned' : '');
+
+      var head = document.createElement('div');
+      head.className = 'note-head';
+      var title = document.createElement('div');
+      title.className = 'note-title' + (n.title ? '' : ' empty');
+      title.textContent = n.title || '（无标题）';
+      head.appendChild(title);
+
+      var body = document.createElement('p');
+      body.className = 'note-body';
+      body.textContent = n.body || '';
+      if (!n.body) body.style.display = 'none';
+
+      var foot = document.createElement('div');
+      foot.className = 'note-foot';
+      var time = document.createElement('span');
+      time.className = 'time';
+      time.textContent = '更新于 ' + fmt(n.updatedAt || n.createdAt || Date.now());
+      foot.appendChild(time);
+
+      var actions = document.createElement('div');
+      actions.className = 'actions';
+      actions.appendChild(makeBtn(n.pinned ? '★ 已置顶' : '☆ 置顶',
+        'icon pin' + (n.pinned ? ' on' : ''), function () {
+          n.pinned = !n.pinned;
+          n.updatedAt = Date.now();
+          if (save()) render();
+        }));
+      actions.appendChild(makeBtn('编辑', 'icon', function () { startEdit(n.id); }));
+      actions.appendChild(makeBtn('删除', 'icon del', function () { removeNote(n.id, n.title); }));
+      foot.appendChild(actions);
+
+      card.appendChild(head);
+      card.appendChild(body);
+      card.appendChild(foot);
+      listEl.appendChild(card);
+    });
+
+    // 空状态
+    if (ordered.length === 0) {
+      emptyEl.style.display = '';
+      if (notes.length === 0) {
+        emptyTextEl.textContent = '还没有备忘录，在上方写下第一条吧';
+      } else if (kw) {
+        emptyTextEl.textContent = '没有匹配「' + keyword.trim() + '」的备忘录';
+      } else {
+        emptyTextEl.textContent = '还没有置顶的备忘录';
+      }
+    } else {
+      emptyEl.style.display = 'none';
+    }
+
+    counterEl.textContent = '共 ' + notes.length + ' 条' +
+      (kw ? '，筛选出 ' + ordered.length + ' 条' : '');
+  }
+
+  function makeBtn(text, cls, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = text;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  // ---------- 增删改 ----------
+  var titleEl = document.getElementById('title');
+  var bodyEl = document.getElementById('body');
+  var saveBtn = document.getElementById('saveBtn');
+  var cancelBtn = document.getElementById('cancelBtn');
+  var editHint = document.getElementById('editHint');
+
+  function saveNote() {
+    var t = titleEl.value.trim();
+    var b = bodyEl.value.trim();
+    if (!t && !b) {
+      toast('内容为空，写点什么再保存吧');
+      titleEl.focus();
+      return;
+    }
+    var now = Date.now();
+    if (editingId) {
+      var n = notes.find(function (x) { return x.id === editingId; });
+      if (n) {
+        n.title = t;
+        n.body = b;
+        n.updatedAt = now;
+      }
+      if (save()) {
+        toast('已更新');
+        resetEditor();
+        render();
+      }
+    } else {
+      notes.push({ id: uid(), title: t, body: b, pinned: false, createdAt: now, updatedAt: now });
+      if (save()) {
+        toast('已保存');
+        resetEditor();
+        render();
+      }
+    }
+  }
+
+  function startEdit(id) {
+    var n = notes.find(function (x) { return x.id === id; });
+    if (!n) return;
+    editingId = id;
+    titleEl.value = n.title || '';
+    bodyEl.value = n.body || '';
+    saveBtn.textContent = '更新备忘录';
+    cancelBtn.style.display = '';
+    editHint.textContent = '正在编辑：' + (n.title || '（无标题）');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    titleEl.focus();
+  }
+
+  function resetEditor() {
+    editingId = null;
+    titleEl.value = '';
+    bodyEl.value = '';
+    saveBtn.textContent = '保存备忘录';
+    cancelBtn.style.display = 'none';
+    editHint.textContent = '数据保存在浏览器本地（localStorage），刷新不丢失';
+  }
+
+  function removeNote(id, title) {
+    var n = notes.find(function (x) { return x.id === id; });
+    if (!n) return;
+    if (!confirm('确定删除「' + (title || '（无标题）') + '」吗？此操作不可撤销。')) return;
+    notes = notes.filter(function (x) { return x.id !== id; });
+    if (editingId === id) resetEditor();
+    if (save()) {
+      toast('已删除');
+      render();
+    }
+  }
+
+  // ---------- 事件绑定 ----------
+  saveBtn.addEventListener('click', saveNote);
+  cancelBtn.addEventListener('click', function () {
+    resetEditor();
+    toast('已取消编辑');
+  });
+
+  bodyEl.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      saveNote();
+    }
+  });
+  titleEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      bodyEl.focus();
+    }
+  });
+
+  document.getElementById('search').addEventListener('input', function (e) {
+    keyword = e.target.value;
+    render();
+  });
+
+  document.getElementById('filters').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    view = btn.getAttribute('data-view');
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    render();
+  });
+
+  // 多个标签页/窗口之间同步
+  window.addEventListener('storage', function (e) {
+    if (e.key === STORAGE_KEY) {
+      load();
+      render();
+      toast('已同步其他窗口的修改');
+    }
+  });
+
+  // 防止误关：有未保存内容时提示
+  titleEl.addEventListener('input', markDirty);
+  bodyEl.addEventListener('input', markDirty);
+  function markDirty() { window.onbeforeunload = null; }
+
+  // ---------- 启动 ----------
+  load();
+  render();
+})();
+</script>
+</body>
+</html>
