@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>工作台 · Workbench</title>
+<style>
+/* ==================================================================
+   设计令牌
+   ================================================================== */
+:root{
+  --bg:#f2f4f9;
+  --panel:#ffffff;
+  --panel-2:#f8f9fc;
+  --text:#1a1f2b;
+  --muted:#79839a;
+  --line:#e5e8f0;
+  --brand:#4c6ef5;
+  --brand-2:#7c5cff;
+  --work:#e5484d;
+  --work-2:#f97316;
+  --break:#10b981;
+  --break-2:#22d3ee;
+  --long:#0ea5e9;
+  --shadow:0 4px 6px -1px rgba(20,28,50,.06),0 12px 28px -6px rgba(20,28,50,.10);
+  --shadow-lg:0 20px 48px -12px rgba(20,28,50,.22);
+  --radius:16px;
+  --radius-sm:11px;
+}
+html[data-theme="dark"]{
+  --bg:#0d1017;
+  --panel:#161a23;
+  --panel-2:#1b2029;
+  --text:#e8ecf5;
+  --muted:#8f9ab1;
+  --line:#262c38;
+  --shadow:0 4px 6px -1px rgba(0,0,0,.4),0 14px 32px -8px rgba(0,0,0,.55);
+  --shadow-lg:0 24px 56px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;min-height:100%}
+body{
+  background:
+    radial-gradient(1100px 560px at 10% -8%,color-mix(in srgb,var(--brand) 16%,transparent),transparent 60%),
+    radial-gradient(900px 520px at 92% 4%,color-mix(in srgb,var(--brand-2) 15%,transparent),transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:"Segoe UI Variable","Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:14.5px;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea{user-select:text}
+::selection{background:color-mix(in srgb,var(--brand) 32%,transparent)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 38%,transparent);
+  border-radius:8px;border:3px solid transparent;background-clip:content-box}
+
+.wrap{max-width:1120px;margin:0 auto;padding:26px 18px 60px}
+
+/* ==================================================================
+   顶栏
+   ================================================================== */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:220px}
+.brand .mark{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;font-size:20px;
+  box-shadow:0 8px 20px -6px color-mix(in srgb,var(--brand) 70%,transparent)}
+.brand h1{margin:0;font-size:19px;letter-spacing:-.2px}
+.brand .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.clock-box{text-align:right}
+.clock-box .t{font-size:26px;font-weight:300;line-height:1.05;font-variant-numeric:tabular-nums}
+.clock-box .d{font-size:12.5px;color:var(--muted)}
+.icon-btn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);
+  transition:transform .16s,background .16s}
+.icon-btn:hover{transform:translateY(-1px);background:var(--panel-2)}
+
+/* ==================================================================
+   布局
+   ================================================================== */
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:20px}
+.card > h2{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:9px}
+.card > .hint{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.card-head h2{margin:0;font-size:15px;display:flex;align-items:center;gap:9px}
+
+/* ==================================================================
+   番茄钟
+   ================================================================== */
+.modes{display:flex;gap:7px;background:var(--panel-2);border:1px solid var(--line);
+  padding:5px;border-radius:13px;margin-bottom:20px}
+.mode{flex:1;padding:9px 6px;border-radius:9px;font-size:12.5px;color:var(--muted);
+  font-weight:500;transition:.18s;text-align:center}
+.mode:hover{color:var(--text)}
+.mode.on{background:var(--panel);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
+.mode.on[data-mode="work"]{color:var(--work)}
+.mode.on[data-mode="short"]{color:var(--break)}
+.mode.on[data-mode="long"]{color:var(--long)}
+
+.dial{position:relative;width:min(280px,74vw);margin:0 auto 6px;aspect-ratio:1}
+.dial svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.dial .track{stroke:var(--line);fill:none}
+.dial .bar{fill:none;stroke-linecap:round;transition:stroke-dashoffset .35s linear,stroke .3s}
+.dial-center{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;pointer-events:none}
+.dial-center .time{font-size:clamp(38px,11vw,54px);font-weight:250;letter-spacing:-1.5px;
+  font-variant-numeric:tabular-nums;line-height:1}
+.dial-center .label{font-size:12.5px;color:var(--muted);letter-spacing:.4px}
+.dial-center .rounds{font-size:11.5px;color:var(--muted);margin-top:4px;
+  background:var(--panel-2);border:1px solid var(--line);padding:2px 9px;border-radius:99px}
+.dial.running .dial-center .time{color:var(--brand)}
+
+.ctrls{display:flex;gap:9px;justify-content:center;margin:16px 0 4px}
+.btn{padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;
+  background:var(--brand);color:#fff;transition:.16s;display:inline-flex;align-items:center;gap:8px;
+  justify-content:center;border:1px solid transparent}
+.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{background:var(--panel-2);color:var(--text);border-color:var(--line);font-weight:500}
+.btn.ghost:hover{background:var(--line);filter:none}
+.btn.danger{background:var(--work)}
+.btn.sm{padding:7px 13px;font-size:12.5px;border-radius:9px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+
+.now-task{margin-top:16px;padding:11px 14px;border-radius:var(--radius-sm);
+  background:var(--panel-2);border:1px dashed var(--line);font-size:12.5px;
+  display:flex;align-items:center;gap:9px}
+.now-task b{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now-task .tag{font-size:11px;color:var(--muted)}
+.auto-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px}
+.switch{width:42px;height:24px;border-radius:99px;flex:none;position:relative;
+  background:color-mix(in srgb,var(--muted) 34%,transparent);transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
+.switch.on{background:var(--brand)}
+.switch.on::after{left:21px}
+
+/* ==================================================================
+   待办
+   ================================================================== */
+.todo-add{display:flex;gap:8px;margin-bottom:14px}
+.todo-add input{flex:1;min-width:0;height:42px;border-radius:var(--radius-sm);border:1px solid var(--line);
+  background:var(--panel-2);padding:0 14px;outline:none;transition:.16s}
+.todo-add input:focus{border-color:color-mix(in srgb,var(--brand) 55%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent);background:var(--panel)}
+.filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.chip{padding:5px 12px;border-radius:99px;font-size:12px;color:var(--muted);
+  border:1px solid var(--line);background:var(--panel-2);transition:.16s}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--brand);color:#fff;border-color:transparent}
+.filters .spacer{flex:1}
+.filters .count{font-size:12px;color:var(--muted)}
+
+.todo-list{display:flex;flex-direction:column;gap:8px;max-height:430px;overflow:auto;padding-right:4px}
+.todo{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border-radius:var(--radius-sm);
+  background:var(--panel-2);border:1px solid var(--line);transition:.16s;position:relative}
+.todo:hover{border-color:color-mix(in srgb,var(--brand) 35%,transparent)}
+.todo.active{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,var(--panel-2))}
+.todo.done{opacity:.55}
+.todo.done .txt{text-decoration:line-through}
+.check{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;margin-top:1px;
+  display:grid;place-items:center;transition:.16s;background:var(--panel)}
+.check:hover{border-color:var(--brand)}
+.todo.done .check{background:var(--break);border-color:var(--break)}
+.check svg{opacity:0;transition:.16s}
+.todo.done .check svg{opacity:1}
+.todo-main{flex:1;min-width:0}
+.todo .txt{font-size:13.5px;line-height:1.5;word-break:break-word;outline:none}
+.todo .txt[contenteditable]:focus{background:var(--panel);border-radius:6px;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 30%,transparent);padding:2px 5px;margin:-2px -5px}
+.todo .meta{display:flex;align-items:center;gap:9px;margin-top:5px;font-size:11.5px;color:var(--muted);
+  flex-wrap:wrap}
+.pri{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:99px;
+  border:1px solid var(--line);background:var(--panel)}
+.pri.p-high{color:var(--work);border-color:color-mix(in srgb,var(--work) 40%,transparent)}
+.pri.p-mid{color:#c2830a;border-color:color-mix(in srgb,#f59e0b 45%,transparent)}
+.todo .tools{display:flex;gap:4px;flex:none;opacity:0;transition:.16s}
+.todo:hover .tools,.todo.active .tools{opacity:1}
+.tico{width:27px;height:27px;border-radius:8px;display:grid;place-items:center;color:var(--muted);
+  font-size:13px;transition:.16s}
+.tico:hover{background:var(--line);color:var(--text)}
+.tico.del:hover{background:var(--work);color:#fff}
+.tico.on{color:var(--brand);background:color-mix(in srgb,var(--brand) 15%,transparent)}
+.empty{text-align:center;padding:34px 16px;color:var(--muted);font-size:13px}
+.empty .big{font-size:32px;margin-bottom:8px;opacity:.8}
+
+/* ==================================================================
+   统计
+   ================================================================== */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand)}
+.stat.s2::before{background:var(--break)}
+.stat.s3::before{background:var(--long)}
+.stat.s4::before{background:var(--work-2)}
+.stat .k{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stat .v{font-size:26px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .u{font-size:12.5px;color:var(--muted);font-weight:400;margin-left:3px}
+
+.chart{display:flex;align-items:flex-end;gap:8px;height:132px;padding:10px 2px 0}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end}
+.col .bar{width:100%;max-width:44px;border-radius:7px 7px 3px 3px;min-height:3px;
+  background:linear-gradient(180deg,var(--brand),color-mix(in srgb,var(--brand) 45%,transparent));
+  transition:height .5s cubic-bezier(.3,1,.4,1);position:relative}
+.col.today .bar{background:linear-gradient(180deg,var(--brand-2),var(--brand))}
+.col .n{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.col .lb{font-size:11.5px;color:var(--muted)}
+.col.today .lb{color:var(--text);font-weight:600}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+
+/* ==================================================================
+   速记
+   ================================================================== */
+.scratch{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px}
+@media (max-width:880px){.scratch{grid-template-columns:1fr}}
+textarea.note{width:100%;min-height:190px;border-radius:var(--radius-sm);border:1px solid var(--line);
+  background:var(--panel-2);padding:14px;outline:none;resize:vertical;line-height:1.75;font-size:13.5px}
+textarea.note:focus{border-color:color-mix(in srgb,var(--brand) 50%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 16%,transparent)}
+.saved-tip{font-size:11.5px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+.tips{font-size:12.5px;color:var(--muted);line-height:1.9}
+.tips b{color:var(--text);font-weight:600}
+kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:6px;padding:1px 6px;font-size:11.5px;font-family:inherit}
+
+/* ==================================================================
+   完成遮罩 / 通知
+   ================================================================== */
+#flash{position:fixed;inset:0;z-index:80;display:none;place-items:center;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(8px)}
+#flash.on{display:grid;animation:fade .3s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.flash-box{text-align:center;max-width:420px;padding:34px 30px;background:var(--panel);
+  border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);animation:pop .34s cubic-bezier(.2,1.2,.4,1)}
+@keyframes pop{from{transform:scale(.9) translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.flash-box .em{font-size:48px;margin-bottom:10px}
+.flash-box h3{margin:0 0 8px;font-size:20px}
+.flash-box p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.6}
+.flash-box .row{display:flex;gap:10px;justify-content:center}
+
+#toasts{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;
+  gap:9px;align-items:flex-end;pointer-events:none}
+.toast{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  box-shadow:var(--shadow-lg);padding:12px 15px;max-width:330px;display:flex;gap:11px;
+  align-items:flex-start;animation:slideIn .26s cubic-bezier(.2,1,.3,1)}
+.toast.out{animation:slideOut .22s forwards}
+.toast .ic{font-size:18px}
+.toast b{display:block;font-size:13px;margin-bottom:2px}
+.toast p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+@keyframes slideIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes slideOut{to{opacity:0;transform:translateX(22px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 顶栏 -->
+  <header class="top">
+    <div class="brand">
+      <div class="mark">🧰</div>
+      <div>
+        <h1>工作台</h1>
+        <div class="sub" id="greeting">你好，开始专注吧</div>
+      </div>
+    </div>
+    <div class="clock-box">
+      <div class="t" id="clock">--:--:--</div>
+      <div class="d" id="today">----</div>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色">🌙</button>
+    <button class="icon-btn" id="notifyBtn" title="开启系统通知">🔔</button>
+  </header>
+
+  <div class="grid">
+    <!-- ============ 番茄钟 ============ -->
+    <section class="card">
+      <div class="card-head">
+        <h2>🍅 番茄时钟</h2>
+        <span class="hint" id="cycleHint" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+
+      <div class="modes" id="modes">
+        <button class="mode on" data-mode="work">专注 <span id="mWork">25</span>′</button>
+        <button class="mode" data-mode="short">短休息 <span id="mShort">5</span>′</button>
+        <button class="mode" data-mode="long">长休息 <span id="mLong">15</span>′</button>
+      </div>
+
+      <div class="dial" id="dial">
+        <svg viewBox="0 0 240 240">
+          <circle class="track" cx="120" cy="120" r="106" stroke-width="13"></circle>
+          <circle class="bar" id="ring" cx="120" cy="120" r="106" stroke-width="13"
+                  stroke-dasharray="666.0" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="dial-center">
+          <div class="time" id="timeText">25:00</div>
+          <div class="label" id="modeLabel">专注中</div>
+          <div class="rounds" id="rounds">第 1 个番茄</div>
+        </div>
+      </div>
+
+      <div class="ctrls">
+        <button class="btn" id="startBtn">▶ 开始</button>
+        <button class="btn ghost" id="resetBtn">↺ 重置</button>
+        <button class="btn ghost" id="skipBtn">⏭ 跳过</button>
+      </div>
+
+      <div class="now-task" id="nowTask">
+        <span>🎯</span><b id="nowTaskText">未选择任务</b>
+        <span class="tag" id="nowTaskTag">在右侧待办中点击 ◎</span>
+      </div>
+
+      <div class="auto-row">
+        <div>
+          <div style="font-weight:600">自动开始下一阶段</div>
+          <div style="color:var(--muted);font-size:11.5px;margin-top:2px">专注结束自动进入休息，休息结束自动开始专注</div>
+        </div>
+        <button class="switch" id="autoSw" role="switch" aria-checked="false"></button>
+      </div>
+      <div class="auto-row">
+        <div>
+          <div style="font-weight:600">提示音</div>
+          <div style="color:var(--muted);font-size:11.5px;margin-top:2px">阶段结束时播放提示音</div>
+        </div>
+        <button class="switch" id="soundSw" role="switch" aria-checked="true"></button>
+      </div>
+    </section>
+
+    <!-- ============ 待办 ============ -->
+    <section class="card">
+      <div class="card-head">
+        <h2>✅ 待办清单</h2>
+        <span class="hint" id="todoSummary" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+
+      <div class="todo-add">
+        <input type="text" id="todoInput" placeholder="添加一个待办，回车确认…" maxlength="160">
+        <button class="btn sm" id="addBtn" style="padding:0 18px;height:42px">添加</button>
+      </div>
+
+      <div class="filters" id="filters">
+        <button class="chip on" data-filter="all">全部</button>
+        <button class="chip" data-filter="active">进行中</button>
+        <button class="chip" data-filter="done">已完成</button>
+        <button class="chip" data-filter="high">高优先级</button>
+        <span class="spacer"></span>
+        <span class="count" id="filterCount"></span>
+        <button class="chip" id="clearDone">清除已完成</button>
+      </div>
+
+      <div class="todo-list" id="todoList"></div>
+    </section>
+  </div>
+
+  <!-- ============ 统计 ============ -->
+  <h2 style="font-size:15px;margin:26px 0 14px">📊 今日数据</h2>
+  <div class="stats">
+    <div class="stat">
+      <div class="k">🍅 完成番茄</div>
+      <div class="v" id="stPomo">0<span class="u">个</span></div>
+    </div>
+    <div class="stat s2">
+      <div class="k">⏱ 专注时长</div>
+      <div class="v" id="stFocus">0<span class="u">分钟</span></div>
+    </div>
+    <div class="stat s3">
+      <div class="k">✅ 完成任务</div>
+      <div class="v" id="stDone">0<span class="u">项</span></div>
+    </div>
+    <div class="stat s4">
+      <div class="k">🔥 连续天数</div>
+      <div class="v" id="stStreak">0<span class="u">天</span></div>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>📈 最近 7 天专注番茄</h2>
+      <span class="hint" id="weekTotal" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="chart" id="chart"></div>
+    <div class="legend">
+      <span><i style="background:var(--brand)"></i>当日番茄数</span>
+      <span><i style="background:var(--brand-2)"></i>今天</span>
+      <span id="bestDay"></span>
+    </div>
+  </section>
+
+  <!-- ============ 速记 ============ -->
+  <h2 style="font-size:15px;margin:26px 0 14px">📝 速记与帮助</h2>
+  <div class="scratch">
+    <section class="card">
+      <div class="card-head"><h2>随手记</h2><button class="btn ghost sm" id="clearNote">清空</button></div>
+      <textarea class="note" id="scratch" placeholder="临时记录想法、链接、会议要点……输入即自动保存。"></textarea>
+      <div class="saved-tip"><span>自动保存到本机 localStorage</span><span id="noteSaved">—</span></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>使用指南</h2></div>
+      <div class="tips">
+        <div><b>番茄工作法</b>：专注 25 分钟 → 短休息 5 分钟，每完成 4 个番茄进入一次 15 分钟长休息。</div>
+        <div><b>开始一个番茄</b>：在待办上点 <kbd>◎</kbd> 把它设为当前任务，完成番茄后会自动给它记 1 个 🍅。</div>
+        <div><b>快捷键</b>：<kbd>空格</kbd> 开始/暂停 · <kbd>R</kbd> 重置 · <kbd>N</kbd> 跳到输入框 · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切换模式</div>
+        <div><b>后台也准确</b>：计时基于时间戳，切到别的标签页或最小化浏览器都不会跑慢。</div>
+        <div><b>刷新不丢</b>：计时进度、待办、统计、速记都存在 localStorage，关掉浏览器再打开照样在。</div>
+        <div><b>系统通知</b>：点右上角 🔔 授权后，阶段结束时会弹出桌面通知（需要浏览器支持）。</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- 阶段完成提示 -->
+<div id="flash">
+  <div class="flash-box">
+    <div class="em" id="flashEm">🎉</div>
+    <h3 id="flashTitle">专注完成！</h3>
+    <p id="flashDesc">起来活动一下，休息 5 分钟。</p>
+    <div class="row">
+      <button class="btn" id="flashMain">开始休息</button>
+      <button class="btn ghost" id="flashClose">稍后再说</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ================================================================
+   常量与状态
+   ================================================================ */
+var KEY = {
+  timer:   'wb.timer.v1',
+  todos:   'wb.todos.v1',
+  stats:   'wb.stats.v1',
+  scratch: 'wb.scratch.v1',
+  prefs:   'wb.prefs.v1'
+};
+var MODES = {
+  work:  { label: '专注中',   short: '专注', min: 25, color: 'var(--work)',  em: '🍅' },
+  short: { label: '短休息',   short: '短休息', min: 5,  color: 'var(--break)', em: '☕' },
+  long:  { label: '长休息',   short: '长休息', min: 15, color: 'var(--long)',  em: '🌿' }
+};
+var CIRC = 2 * Math.PI * 106;       // 进度环周长
+
+/* ---------- 小工具 ---------- */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+function load(k, fb) {
+  try { var r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; }
+  catch (e) { console.warn('读取失败 ' + k, e); return fb; }
+}
+function store(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch (e) { console.warn('写入失败 ' + k, e); return false; }
+}
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function dayKey(ts) {
+  var d = new Date(ts == null ? Date.now() : ts);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function uid() { return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function fmtClock(sec) {
+  sec = Math.max(0, Math.round(sec));
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return pad2(m) + ':' + pad2(s);
+}
+
+/* ---------- 通知 ---------- */
+function toast(title, msg, ic, ms) {
+  var box = $('toasts');
+  var t = el('div', 'toast');
+  t.appendChild(el('span', 'ic', ic || 'ℹ️'));
+  var b = el('div');
+  b.appendChild(el('b', null, title));
+  if (msg) b.appendChild(el('p', null, msg));
+  t.appendChild(b);
+  box.appendChild(t);
+  setTimeout(function () {
+    t.classList.add('out');
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 240);
+  }, ms || 3400);
+}
+function notify(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    var n = new Notification(title, { body: body, tag: 'workbench', silent: false });
+    setTimeout(function () { try { n.close(); } catch (e) {} }, 8000);
+  } catch (e) { console.warn(e); }
+}
+var audioCtx = null;
+function beep(times, freq) {
+  if (!prefs.sound) return;
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+    var n = times || 2, f = freq || 880;
+    for (var i = 0; i < n; i++) {
+      var t0 = audioCtx.currentTime + i * 0.28;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f + i * 120, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.26);
+    }
+  } catch (e) { console.warn('提示音失败', e); }
+}
+
+/* ================================================================
+   数据装载
+   ================================================================ */
+var prefs = Object.assign({
+  theme: 'auto', autoNext: false, sound: true,
+  durations: { work: 25, short: 5, long: 15 },
+  activeTaskId: null, longEvery: 4
+}, load(KEY.prefs, {}));
+if (!prefs.durations) prefs.durations = { work: 25, short: 5, long: 15 };
+
+var todos = load(KEY.todos, []);
+if (!Array.isArray(todos)) todos = [];
+
+var stats = load(KEY.stats, null);
+if (!stats || typeof stats !== 'object') stats = {};
+stats.days = stats.days || {};            // 'YYYY-MM-DD' -> { pomo, focus, done }
+stats.streak = stats.streak || 0;
+stats.lastDay = stats.lastDay || null;
+
+var timer = load(KEY.timer, null);
+if (!timer || typeof timer !== 'object') {
+  timer = { mode: 'work', remaining: prefs.durations.work * 60, running: false, endAt: null, rounds: 0 };
+}
+if (typeof timer.rounds !== 'number') timer.rounds = 0;
+if (!MODES[timer.mode]) timer.mode = 'work';
+if (typeof timer.remaining !== 'number' || timer.remaining <= 0) {
+  timer.remaining = prefs.durations[timer.mode] * 60;
+}
+
+function savePrefs() { store(KEY.prefs, prefs); }
+function saveTimer() { store(KEY.timer, timer); }
+function saveTodos() { store(KEY.todos, todos); }
+function saveStats() { store(KEY.stats, stats); }
+
+function today() {
+  var k = dayKey();
+  if (!stats.days[k]) stats.days[k] = { pomo: 0, focus: 0, done: 0 };
+  return stats.days[k];
+}
+
+/* ================================================================
+   主题
+   ================================================================ */
+function themeMode() {
+  if (prefs.theme === 'auto') {
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  return prefs.theme;
+}
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', themeMode());
+  $('themeBtn').textContent = themeMode() === 'dark' ? '☀️' : '🌙';
+}
+$('themeBtn').addEventListener('click', function () {
+  prefs.theme = themeMode() === 'dark' ? 'light' : 'dark';
+  savePrefs(); applyTheme();
+});
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if (prefs.theme === 'auto') applyTheme();
+  });
+}
+
+/* 通知授权 */
+function refreshNotifyBtn() {
+  var b = $('notifyBtn');
+  if (!('Notification' in window)) { b.textContent = '🔕'; b.title = '当前浏览器不支持系统通知'; b.disabled = true; return; }
+  var p = Notification.permission;
+  b.textContent = p === 'granted' ? '🔔' : (p === 'denied' ? '🔕' : '🔔');
+  b.title = p === 'granted' ? '系统通知已开启' : (p === 'denied' ? '系统通知被拒绝，请在浏览器设置中允许' : '点击开启系统通知');
+  b.style.opacity = p === 'granted' ? '1' : '.75';
+}
+$('notifyBtn').addEventListener('click', function () {
+  if (!('Notification' in window)) { toast('不支持通知', '当前浏览器没有 Notification API。', '🔕'); return; }
+  if (Notification.permission === 'granted') { toast('通知已开启', '阶段结束时会弹出桌面通知。', '🔔'); return; }
+  Notification.requestPermission().then(function (p) {
+    refreshNotifyBtn();
+    if (p === 'granted') { toast('已授权', '阶段结束时将弹出系统通知。', '🔔'); notify('工作台', '系统通知已开启 ✅'); }
+    else toast('未授权', '你仍然会在页面内看到完成提示和提示音。', '🔕');
+  }).catch(function () { refreshNotifyBtn(); });
+});
+
+/* ================================================================
+   番茄钟
+   ================================================================ */
+var dial = $('dial'), ring = $('ring');
+ring.setAttribute('stroke-dasharray', CIRC.toFixed(1));
+
+function modeTotal(m) { return (prefs.durations[m] || MODES[m].min) * 60; }
+function isRunning() { return timer.running && timer.endAt; }
+
+function remainSec() {
+  if (isRunning()) return Math.max(0, (timer.endAt - Date.now()) / 1000);
+  return Math.max(0, timer.remaining);
+}
+function persistTimerFromClock() {
+  timer.remaining = remainSec();
+}
+
+function renderTimer() {
+  var total = modeTotal(timer.mode);
+  var rem = remainSec();
+  var frac = total > 0 ? clamp(rem / total, 0, 1) : 0;
+
+  ring.style.stroke = MODES[timer.mode].color;
+  ring.setAttribute('stroke-dashoffset', (CIRC * (1 - frac)).toFixed(1));
+
+  $('timeText').textContent = fmtClock(rem);
+  $('modeLabel').textContent = MODES[timer.mode].label;
+  dial.classList.toggle('running', !!isRunning());
+
+  var pomoNo = (timer.rounds % prefs.longEvery) + 1;
+  $('rounds').textContent = timer.mode === 'work'
+    ? '第 ' + pomoNo + ' 个番茄'
+    : '已完成 ' + timer.rounds + ' 个番茄';
+
+  $('startBtn').textContent = isRunning() ? '⏸ 暂停' : (rem < total ? '▶ 继续' : '▶ 开始');
+  document.title = (isRunning() ? fmtClock(rem) + ' · ' : '') + MODES[timer.mode].short + ' · 工作台';
+
+  var done = prefs.longEvery - (timer.rounds % prefs.longEvery);
+  $('cycleHint').textContent = '再完成 ' + (done === prefs.longEvery && timer.rounds > 0 ? prefs.longEvery : done) + ' 个进入长休息';
+  if (timer.rounds === 0) $('cycleHint').textContent = '每 ' + prefs.longEvery + ' 个番茄长休息一次';
+
+  document.querySelectorAll('.mode').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.mode === timer.mode);
+  });
+  $('mWork').textContent = prefs.durations.work;
+  $('mShort').textContent = prefs.durations.short;
+  $('mLong').textContent = prefs.durations.long;
+  renderNowTask();
+}
+
+var tickTimer = null;
+function startTick() {
+  if (tickTimer) return;
+  tickTimer = setInterval(function () {
+    if (!isRunning()) { renderTimer(); return; }
+    if (remainSec() <= 0.4) { finishPhase(); return; }
+    renderTimer();
+  }, 250);
+}
+function stopTick() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
+
+function toggleStart() {
+  if (isRunning()) {
+    timer.remaining = remainSec();
+    timer.running = false;
+    timer.endAt = null;
+    stopTick();
+  } else {
+    if (timer.remaining <= 0) timer.remaining = modeTotal(timer.mode);
+    timer.endAt = Date.now() + timer.remaining * 1000;
+    timer.running = true;
+    startTick();
+    // 首次交互时解锁音频上下文
+    if (prefs.sound) beep(0);
+  }
+  saveTimer(); renderTimer();
+}
+
+function resetPhase() {
+  timer.running = false; timer.endAt = null;
+  timer.remaining = modeTotal(timer.mode);
+  stopTick(); saveTimer(); renderTimer();
+  toast('已重置', MODES[timer.mode].short + ' 计时器回到 ' + prefs.durations[timer.mode] + ' 分钟。', '↺', 2000);
+}
+
+function switchMode(m, keepRunning) {
+  timer.mode = m;
+  timer.running = false; timer.endAt = null;
+  timer.remaining = modeTotal(m);
+  stopTick();
+  if (keepRunning) {
+    timer.endAt = Date.now() + timer.remaining * 1000;
+    timer.running = true; startTick();
+  }
+  saveTimer(); renderTimer();
+}
+
+/** 判断下一个阶段 */
+function nextMode() {
+  if (timer.mode !== 'work') return 'work';
+  var next = timer.rounds + 1;
+  return (next % prefs.longEvery === 0) ? 'long' : 'short';
+}
+
+function finishPhase() {
+  var finished = timer.mode;
+  stopTick();
+  timer.running = false; timer.endAt = null;
+
+  if (finished === 'work') {
+    timer.rounds += 1;
+    var d = today();
+    d.pomo += 1;
+    d.focus += prefs.durations.work;
+    // 当前任务 +1 番茄
+    var t = todos.filter(function (x) { return x.id === prefs.activeTaskId; })[0];
+    if (t) { t.pomo = (t.pomo || 0) + 1; saveTodos(); }
+    bumpStreak();
+    saveStats();
+    renderStats(); renderTodos();
+    beep(3, 820);
+    notify('🍅 专注完成', '完成第 ' + timer.rounds + ' 个番茄，起来活动一下吧。');
+    showFlash(true);
+  } else {
+    beep(2, 620);
+    notify('⏰ 休息结束', '回到工作状态，开始下一个番茄。');
+    showFlash(false);
+  }
+
+  var nx = nextMode();
+  timer.mode = nx;
+  timer.remaining = modeTotal(nx);
+  saveTimer(); renderTimer();
+  if (prefs.autoNext) setTimeout(function () { if (!isRunning()) toggleStart(); }, 900);
+  saveTodos();
+}
+
+function showFlash(wasWork) {
+  var nx = timer.mode;            // finishPhase 已切换到下一阶段
+  var box = $('flash');
+  $('flashEm').textContent = wasWork ? '🎉' : '💪';
+  $('flashTitle').textContent = wasWork ? '专注完成！' : '休息结束！';
+  $('flashDesc').textContent = wasWork
+    ? '干得漂亮。接下来是' + (nx === 'long' ? '一次长休息（' + prefs.durations.long + ' 分钟）' : '短休息（' + prefs.durations.short + ' 分钟）') + '。'
+    : '准备好开始下一个' + prefs.durations.work + ' 分钟专注了吗？';
+  $('flashMain').textContent = wasWork ? '开始休息' : '开始专注';
+  box.classList.add('on');
+}
+function hideFlash() { $('flash').classList.remove('on'); }
+$('flashMain').addEventListener('click', function () {
+  hideFlash();
+  if (!isRunning()) toggleStart();
+});
+$('flashClose').addEventListener('click', hideFlash);
+$('flash').addEventListener('click', function (e) { if (e.target === $('flash')) hideFlash(); });
+
+/* 按钮与模式 */
+$('startBtn').addEventListener('click', toggleStart);
+$('resetBtn').addEventListener('click', resetPhase);
+$('skipBtn').addEventListener('click', function () {
+  var nm = timer.mode === 'work' ? nextMode() : 'work';
+  if (timer.mode === 'work' && !confirm('跳过当前专注？这个番茄不会被计入统计。')) return;
+  switchMode(nm, false);
+  toast('已跳过', '现在进入' + MODES[nm].short + '。', '⏭', 2000);
+});
+$('modes').addEventListener('click', function (e) {
+  var b = e.target.closest('.mode');
+  if (b) switchMode(b.dataset.mode, false);
+});
+$('autoSw').addEventListener('click', function () {
+  prefs.autoNext = !prefs.autoNext; savePrefs(); syncPrefs();
+});
+$('soundSw').addEventListener('click', function () {
+  prefs.sound = !prefs.sound; savePrefs(); syncPrefs();
+  if (prefs.sound) beep(1, 880);
+});
+function syncPrefs() {
+  $('autoSw').classList.toggle('on', !!prefs.autoNext);
+  $('autoSw').setAttribute('aria-checked', String(!!prefs.autoNext));
+  $('soundSw').classList.toggle('on', !!prefs.sound);
+  $('soundSw').setAttribute('aria-checked', String(!!prefs.sound));
+}
+
+/* 当前任务 */
+function renderNowTask() {
+  var t = todos.filter(function (x) { return x.id === prefs.activeTaskId; })[0];
+  $('nowTaskText').textContent = t ? t.title : '未选择任务';
+  $('nowTaskTag').textContent = t ? ((t.pomo || 0) + ' 🍅 已投入') : '在右侧待办中点击 ◎';
+}
+
+/* ================================================================
+   待办
+   ================================================================ */
+var filter = 'all';
+var PRI = {
+  high: { name: '高', cls: 'p-high', icon: '🔴' },
+  mid:  { name: '中', cls: 'p-mid',  icon: '🟡' },
+  low:  { name: '低', cls: '',       icon: '🔵' }
+};
+
+function addTodo(title, pri) {
+  var t = {
+    id: uid(), title: title, done: false,
+    pri: pri || 'mid', pomo: 0,
+    createdAt: Date.now(), doneAt: null
+  };
+  todos.unshift(t);
+  saveTodos(); renderTodos();
+  return t;
+}
+function toggleTodo(id) {
+  var t = todos.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  t.done = !t.done;
+  t.doneAt = t.done ? Date.now() : null;
+  var d = today();
+  // 重新统计今天的完成数
+  d.done = todos.filter(function (x) { return x.done && x.doneAt && dayKey(x.doneAt) === dayKey(); }).length;
+  saveTodos(); saveStats(); renderTodos(); renderStats();
+  if (t.done) {
+    toast('完成一项', t.title, '✅', 2200);
+    if (prefs.activeTaskId === id) { prefs.activeTaskId = null; savePrefs(); renderNowTask(); }
+  }
+}
+function removeTodo(id) {
+  var t = todos.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  if (!confirm('删除待办「' + t.title + '」？')) return;
+  todos = todos.filter(function (x) { return x.id !== id; });
+  if (prefs.activeTaskId === id) { prefs.activeTaskId = null; savePrefs(); }
+  saveTodos(); renderTodos(); renderNowTask();
+}
+function cyclePri(id) {
+  var order = ['low', 'mid', 'high'];
+  var t = todos.filter(function (x) { return x.id === id; })[0];
+  if (!t) return;
+  t.pri = order[(order.indexOf(t.pri) + 1) % order.length];
+  saveTodos(); renderTodos();
+}
+
+function visibleTodos() {
+  var list = todos.slice();
+  if (filter === 'active') list = list.filter(function (t) { return !t.done; });
+  else if (filter === 'done') list = list.filter(function (t) { return t.done; });
+  else if (filter === 'high') list = list.filter(function (t) { return t.pri === 'high' && !t.done; });
+  var rank = { high: 0, mid: 1, low: 2 };
+  list.sort(function (a, b) {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (a.pri !== b.pri) return rank[a.pri] - rank[b.pri];
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+  return list;
+}
+
+function renderTodos() {
+  var host = $('todoList');
+  host.innerHTML = '';
+  var list = visibleTodos();
+
+  var active = todos.filter(function (t) { return !t.done; }).length;
+  var doneN = todos.length - active;
+  $('todoSummary').textContent = todos.length ? (active + ' 项进行中 · ' + doneN + ' 项已完成') : '';
+  $('filterCount').textContent = list.length + ' 项';
+  $('clearDone').style.display = doneN ? '' : 'none';
+
+  if (!list.length) {
+    var e = el('div', 'empty');
+    e.appendChild(el('div', 'big', todos.length ? '🔍' : '🎯'));
+    e.appendChild(el('div', null, todos.length ? '这个筛选下没有待办' : '还没有待办，在上面添加第一条吧'));
+    host.appendChild(e);
+    return;
+  }
+
+  list.forEach(function (t) {
+    var row = el('div', 'todo' + (t.done ? ' done' : '') + (t.id === prefs.activeTaskId ? ' active' : ''));
+
+    var check = el('button', 'check');
+    check.title = t.done ? '标记为未完成' : '标记为已完成';
+    check.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" ' +
+      'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>';
+    check.addEventListener('click', function () { toggleTodo(t.id); });
+    row.appendChild(check);
+
+    var main = el('div', 'todo-main');
+    var txt = el('div', 'txt', t.title);
+    txt.contentEditable = 'true';
+    txt.spellcheck = false;
+    txt.addEventListener('blur', function () {
+      var v = txt.textContent.trim();
+      if (!v) { txt.textContent = t.title; return; }
+      if (v !== t.title) { t.title = v; saveTodos(); renderNowTask(); }
+    });
+    txt.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); txt.blur(); }
+      if (e.key === 'Escape') { txt.textContent = t.title; txt.blur(); }
+    });
+    main.appendChild(txt);
+
+    var meta = el('div', 'meta');
+    var pri = el('span', 'pri ' + PRI[t.pri].cls, PRI[t.pri].icon + ' ' + PRI[t.pri].name + '优先级');
+    pri.title = '点击切换优先级';
+    pri.style.cursor = 'pointer';
+    pri.addEventListener('click', function () { cyclePri(t.id); });
+    meta.appendChild(pri);
+    if (t.pomo) meta.appendChild(el('span', null, '🍅 ' + t.pomo));
+    if (t.done && t.doneAt) meta.appendChild(el('span', null, '完成于 ' + new Date(t.doneAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })));
+    else meta.appendChild(el('span', null, '创建于 ' + new Date(t.createdAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })));
+    main.appendChild(meta);
+    row.appendChild(main);
+
+    var tools = el('div', 'tools');
+    var bAct = el('button', 'tico' + (t.id === prefs.activeTaskId ? ' on' : ''), '◎');
+    bAct.title = t.id === prefs.activeTaskId ? '取消当前任务' : '设为当前专注任务';
+    bAct.addEventListener('click', function () {
+      prefs.activeTaskId = (prefs.activeTaskId === t.id) ? null : t.id;
+      savePrefs(); renderTodos(); renderNowTask();
+      if (prefs.activeTaskId) toast('已设为当前任务', '完成番茄后会记到「' + t.title + '」上。', '🎯', 2400);
+    });
+    tools.appendChild(bAct);
+
+    var bDel = el('button', 'tico del', '✕');
+    bDel.title = '删除';
+    bDel.addEventListener('click', function () { removeTodo(t.id); });
+    tools.appendChild(bDel);
+
+    row.appendChild(tools);
+    host.appendChild(row);
+  });
+}
+
+$('addBtn').addEventListener('click', function () {
+  var inp = $('todoInput');
+  var v = inp.value.trim();
+  if (!v) { inp.focus(); return; }
+  addTodo(v, 'mid');
+  inp.value = ''; inp.focus();
+  toast('已添加', v, '📌', 1600);
+});
+$('todoInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') $('addBtn').click();
+});
+$('filters').addEventListener('click', function (e) {
+  var c = e.target.closest('.chip[data-filter]');
+  if (!c) return;
+  filter = c.dataset.filter;
+  this.querySelectorAll('.chip[data-filter]').forEach(function (x) { x.classList.toggle('on', x === c); });
+  renderTodos();
+});
+$('clearDone').addEventListener('click', function () {
+  var n = todos.filter(function (t) { return t.done; }).length;
+  if (!n) return;
+  if (!confirm('删除 ' + n + ' 项已完成的待办？')) return;
+  todos = todos.filter(function (t) { return !t.done; });
+  saveTodos(); renderTodos();
+  toast('已清理', '删除了 ' + n + ' 项已完成的待办。', '🧹', 2200);
+});
+
+/* ================================================================
+   统计
+   ================================================================ */
+function bumpStreak() {
+  var k = dayKey();
+  if (stats.lastDay === k) return;
+  var y = new Date(); y.setDate(y.getDate() - 1);
+  var yk = dayKey(y.getTime());
+  stats.streak = (stats.lastDay === yk) ? (stats.streak || 0) + 1 : 1;
+  stats.lastDay = k;
+  saveStats();
+}
+function renderStats() {
+  var d = today();
+  $('stPomo').innerHTML = d.pomo + '<span class="u">个</span>';
+  $('stFocus').innerHTML = d.focus + '<span class="u">分钟</span>';
+  $('stDone').innerHTML = d.done + '<span class="u">项</span>';
+  $('stStreak').innerHTML = (stats.streak || 0) + '<span class="u">天</span>';
+
+  // 近 7 天
+  var host = $('chart'); host.innerHTML = '';
+  var days = [], max = 1, total = 0, best = { n: 0, k: '' };
+  for (var i = 6; i >= 0; i--) {
+    var dt = new Date(); dt.setDate(dt.getDate() - i);
+    var k = dayKey(dt.getTime());
+    var rec = stats.days[k] || { pomo: 0, focus: 0, done: 0 };
+    days.push({ k: k, n: rec.pomo, focus: rec.focus, dt: dt, isToday: i === 0 });
+    total += rec.pomo;
+    if (rec.pomo > max) max = rec.pomo;
+    if (rec.pomo > best.n) best = { n: rec.pomo, k: k };
+  }
+  var wd = ['日', '一', '二', '三', '四', '五', '六'];
+  days.forEach(function (dd) {
+    var col = el('div', 'col' + (dd.isToday ? ' today' : ''));
+    col.appendChild(el('div', 'n', dd.n ? String(dd.n) : ''));
+    var bar = el('div', 'bar');
+    var h = dd.n === 0 ? 4 : Math.max(8, Math.round((dd.n / max) * 96));
+    bar.style.height = h + 'px';
+    bar.title = dd.k + ' · ' + dd.n + ' 个番茄 · ' + dd.focus + ' 分钟';
+    col.appendChild(bar);
+    col.appendChild(el('div', 'lb', dd.isToday ? '今天' : '周' + wd[dd.dt.getDay()]));
+    host.appendChild(col);
+  });
+  $('weekTotal').textContent = '7 天共 ' + total + ' 个番茄';
+  $('bestDay').textContent = best.n ? ('最佳：' + best.k + '（' + best.n + ' 个）') : '本周还没有记录';
+}
+
+/* ================================================================
+   速记
+   ================================================================ */
+var scratch = $('scratch');
+scratch.value = load(KEY.scratch, '') || '';
+var noteTimer = null;
+function markSaved() {
+  $('noteSaved').textContent = '已保存 ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+scratch.addEventListener('input', function () {
+  clearTimeout(noteTimer);
+  $('noteSaved').textContent = '输入中…';
+  noteTimer = setTimeout(function () { store(KEY.scratch, scratch.value); markSaved(); }, 420);
+});
+window.addEventListener('beforeunload', function () {
+  if (scratch.value) store(KEY.scratch, scratch.value);
+});
+$('clearNote').addEventListener('click', function () {
+  if (!scratch.value.trim()) return;
+  if (!confirm('清空速记内容？')) return;
+  scratch.value = ''; store(KEY.scratch, ''); markSaved();
+});
+if (scratch.value) markSaved();
+
+/* ================================================================
+   时钟与问候
+   ================================================================ */
+function tickClock() {
+  var d = new Date();
+  $('clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  $('today').textContent = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+}
+setInterval(tickClock, 1000); tickClock();
+
+function greeting() {
+  var h = new Date().getHours();
+  var d = today();
+  var base = h < 6 ? '夜深了，注意休息' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : h < 23 ? '晚上好' : '夜深了';
+  var tail = d.pomo ? ('今天已完成 ' + d.pomo + ' 个番茄，专注 ' + d.focus + ' 分钟') : '今天还没有开始，选个任务开工吧';
+  $('greeting').textContent = base + ' · ' + tail;
+}
+
+/* ================================================================
+   快捷键
+   ================================================================ */
+document.addEventListener('keydown', function (e) {
+  var tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) {
+    if (e.key === 'Escape' && e.target.isContentEditable) e.target.blur();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === ' ') { e.preventDefault(); toggleStart(); }
+  else if (e.key === 'r' || e.key === 'R') resetPhase();
+  else if (e.key === 'n' || e.key === 'N') { e.preventDefault(); $('todoInput').focus(); }
+  else if (e.key === '1') switchMode('work', false);
+  else if (e.key === '2') switchMode('short', false);
+  else if (e.key === '3') switchMode('long', false);
+  else if (e.key === 'Escape') hideFlash();
+});
+
+/* 关闭页面前记住精确剩余时间 */
+window.addEventListener('beforeunload', function () {
+  if (isRunning()) { persistTimerFromClock(); saveTimer(); }
+});
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden && isRunning()) { persistTimerFromClock(); saveTimer(); }
+});
+
+/* ================================================================
+   启动
+   ================================================================ */
+function boot() {
+  applyTheme();
+  syncPrefs();
+  refreshNotifyBtn();
+  greeting();
+
+  // 恢复计时：若之前正在运行且已到期，补一次结算
+  if (isRunning()) {
+    if (remainSec() <= 0) {
+      finishPhase();
+    } else {
+      startTick();
+      toast('计时继续', MODES[timer.mode].short + ' 还剩 ' + fmtClock(remainSec()) + '，已在后台继续计时。', '⏱', 3200);
+    }
+  } else if (timer.remaining > 0 && timer.remaining < modeTotal(timer.mode)) {
+    toast('已恢复进度', MODES[timer.mode].short + ' 暂停在 ' + fmtClock(timer.remaining) + '。', '⏸', 2800);
+  }
+
+  if (!todos.length) {
+    addTodo('试试点左边的 ◎ 把这条设为当前专注任务', 'high');
+    addTodo('完成一个番茄后，这条待办会自动 +1 🍅', 'mid');
+    addTodo('用快捷键 空格 开始 / 暂停计时', 'low');
+    toast('欢迎使用工作台', '已放入 3 条示例待办，可以直接删除或改成你自己的任务。', '👋', 4200);
+  }
+
+  renderTodos();
+  renderStats();
+  renderTimer();
+  setInterval(greeting, 60000);
+}
+
+try { boot(); }
+catch (err) {
+  console.error(err);
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;background:#e5484d;color:#fff;padding:12px 16px;z-index:999;font-size:13px';
+  box.textContent = '工作台启动出错：' + err.message;
+  document.body.appendChild(box);
+}
+})();
+</script>
+</body>
+</html>
