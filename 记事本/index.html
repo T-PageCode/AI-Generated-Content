@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>记事本</title>
+<style>
+/* ==================================================================
+   主题令牌
+   ================================================================== */
+:root{
+  --bg:#eef1f7;
+  --shell:#ffffff;
+  --bar:#f7f8fc;
+  --text:#1b202b;
+  --muted:#78829a;
+  --line:#e3e7f0;
+  --brand:#3b82f6;
+  --brand-soft:rgba(59,130,246,.14);
+  --mark:#ffe066;
+  --mark-ink:#3a2f00;
+  --shadow:0 10px 30px rgba(20,28,55,.10);
+  --radius:12px;
+}
+html[data-theme="dark"]{
+  --bg:#0d1016;
+  --shell:#14181f;
+  --bar:#1a1f27;
+  --text:#e6eaf3;
+  --muted:#8c97ae;
+  --line:#262c37;
+  --brand:#60a5fa;
+  --brand-soft:rgba(96,165,250,.18);
+  --mark:#7a6a1f;
+  --mark-ink:#ffe9a3;
+  --shadow:0 12px 34px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:"Segoe UI Variable","Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:14px;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+::selection{background:var(--brand-soft)}
+
+.app{height:100%;display:flex;flex-direction:column;background:var(--shell)}
+
+/* ==================================================================
+   顶栏
+   ================================================================== */
+.topbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:var(--bar);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;padding-right:6px}
+.logo .mk{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;
+  background:linear-gradient(135deg,var(--brand),#8b5cf6);color:#fff}
+.logo .nm{font-weight:600;font-size:14px;letter-spacing:.2px}
+.file-name{display:flex;align-items:center;gap:6px;background:var(--shell);border:1px solid var(--line);
+  border-radius:9px;padding:0 10px;height:32px;min-width:150px}
+.file-name input{border:none;background:transparent;outline:none;width:170px;font-size:13px}
+.file-name .ext{color:var(--muted);font-size:12px}
+.spacer{flex:1}
+
+.tb-btn{height:32px;padding:0 11px;border-radius:9px;display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;color:var(--text);border:1px solid transparent;transition:.15s;white-space:nowrap}
+.tb-btn:hover{background:var(--brand-soft);border-color:var(--line)}
+.tb-btn.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+.tb-btn.icon{width:32px;padding:0;justify-content:center;font-size:14px}
+.tb-btn:disabled{opacity:.4;cursor:not-allowed;background:none}
+
+.saved{font-size:12px;color:var(--muted);min-width:96px;text-align:right;
+  display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.saved .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex:none}
+.saved.dirty .dot{background:#f59e0b}
+
+/* ==================================================================
+   格式栏
+   ================================================================== */
+.formatbar{flex:none;display:flex;align-items:center;gap:8px;padding:7px 12px;
+  background:var(--shell);border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:12.5px}
+.fgroup{display:flex;align-items:center;gap:6px}
+.fgroup .lb{color:var(--muted);font-size:12px}
+select.sel{height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bar);
+  padding:0 7px;outline:none;cursor:pointer}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;width:92px;
+  background:var(--line);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--brand);border:2px solid var(--shell);cursor:pointer}
+.sep{width:1px;height:20px;background:var(--line);margin:0 2px}
+.cb{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:8px;
+  border:1px solid transparent;transition:.15s;font-size:12.5px}
+.cb:hover{background:var(--brand-soft)}
+.cb input{accent-color:var(--brand);cursor:pointer;margin:0}
+
+/* ==================================================================
+   查找替换
+   ================================================================== */
+.findbar{flex:none;display:none;align-items:center;gap:8px;padding:8px 12px;
+  background:var(--bar);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.findbar.on{display:flex}
+.findbar input{height:30px;border-radius:8px;border:1px solid var(--line);background:var(--shell);
+  padding:0 10px;outline:none;min-width:130px;flex:1;max-width:260px;user-select:text}
+.findbar input:focus{border-color:var(--brand)}
+.findbar .cnt{font-size:12px;color:var(--muted);min-width:70px}
+.mini{height:30px;padding:0 11px;border-radius:8px;font-size:12.5px;border:1px solid var(--line);
+  background:var(--shell);transition:.15s}
+.mini:hover{background:var(--brand-soft);border-color:var(--brand)}
+.mini.primary{background:var(--brand);color:#fff;border-color:transparent}
+.mini.primary:hover{filter:brightness(1.08)}
+
+/* ==================================================================
+   编辑区
+   ================================================================== */
+.main{flex:1;min-height:0;display:flex;position:relative}
+.gutter{flex:none;width:52px;overflow:hidden;background:var(--bar);border-right:1px solid var(--line);
+  padding:18px 0;text-align:right}
+.gutter.hide{display:none}
+.gutter pre{margin:0;padding:0 10px 0 0;color:var(--muted);font-size:13px;
+  font-family:"Consolas","Cascadia Mono","SF Mono",Menlo,monospace;
+  font-variant-numeric:tabular-nums;line-height:1.7}
+.editor-wrap{flex:1;min-width:0;position:relative;display:flex}
+textarea#editor{
+  flex:1;width:100%;border:none;outline:none;resize:none;
+  background:var(--shell);color:var(--text);
+  padding:18px 22px;line-height:1.7;font-size:15px;
+  font-family:"Consolas","Cascadia Mono","SF Mono",Menlo,"Microsoft YaHei",monospace;
+  tab-size:4;user-select:text;
+}
+textarea#editor.nowrap{white-space:pre;overflow-x:auto}
+textarea#editor::placeholder{color:var(--muted);opacity:.75}
+
+/* 专注模式：隐藏所有工具栏 */
+.app.zen .topbar,.app.zen .formatbar,.app.zen .findbar,.app.zen .statusbar{display:none}
+.app.zen .gutter{background:transparent;border-right-color:transparent;opacity:.5}
+
+/* ==================================================================
+   状态栏
+   ================================================================== */
+.statusbar{flex:none;display:flex;align-items:center;gap:14px;padding:6px 14px;
+  background:var(--bar);border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.statusbar b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.statusbar .sp{flex:1}
+kbd{background:var(--shell);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+  padding:0 5px;font-size:11px;font-family:inherit}
+
+/* ==================================================================
+   浮层：帮助 / 提示
+   ================================================================== */
+.modal{position:fixed;inset:0;z-index:60;display:none;place-items:center;
+  background:rgba(12,16,24,.45);backdrop-filter:blur(4px);padding:20px}
+.modal.on{display:grid}
+.modal-box{background:var(--shell);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:22px}
+.modal-box h2{margin:0 0 4px;font-size:17px}
+.modal-box .sub{color:var(--muted);font-size:12.5px;margin-bottom:16px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:8px 2px;font-size:13px;
+  border-bottom:1px dashed var(--line)}
+.kv:last-of-type{border-bottom:none}
+.kv span{color:var(--muted)}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+
+#toasts{position:fixed;right:16px;bottom:52px;z-index:70;display:flex;flex-direction:column;
+  gap:8px;align-items:flex-end;pointer-events:none}
+.toast{background:var(--shell);border:1px solid var(--line);border-radius:11px;
+  box-shadow:var(--shadow);padding:10px 14px;font-size:12.5px;display:flex;gap:9px;
+  align-items:center;animation:in .22s ease-out;max-width:320px}
+.toast.out{animation:out .2s forwards}
+@keyframes in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes out{to{opacity:0;transform:translateX(16px)}}
+
+@media (max-width:720px){
+  .logo .nm{display:none}
+  .file-name input{width:110px}
+  .gutter{display:none}
+  textarea#editor{padding:14px;font-size:15px}
+}
+@media print{
+  .topbar,.formatbar,.findbar,.statusbar,.gutter,#toasts{display:none !important}
+  body,.app{background:#fff;color:#000}
+  textarea#editor{color:#000;background:#fff;height:auto;overflow:visible}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="logo"><span class="mk">📄</span><span class="nm">记事本</span></div>
+
+    <div class="file-name">
+      <input type="text" id="fileName" value="未命名" maxlength="60" title="文件名（导出时使用）">
+      <span class="ext">.txt</span>
+    </div>
+
+    <span class="spacer"></span>
+
+    <button class="tb-btn" id="btnNew"   title="新建 (Ctrl+N)">🗋 新建</button>
+    <button class="tb-btn" id="btnOpen"  title="打开本地 txt 文件 (Ctrl+O)">📂 打开</button>
+    <button class="tb-btn" id="btnSave"  title="下载为 txt (Ctrl+S)">💾 保存</button>
+    <button class="tb-btn" id="btnCopy"  title="复制全部 (Ctrl+Shift+C)">📋 复制</button>
+    <button class="tb-btn" id="btnFind"  title="查找替换 (Ctrl+F)">🔍 查找</button>
+    <button class="tb-btn" id="btnZen"   title="专注模式 (F11)">🧘 专注</button>
+    <button class="tb-btn" id="btnHelp"  title="快捷键与说明">❓</button>
+    <button class="tb-btn icon" id="btnTheme" title="切换浅色 / 深色">🌙</button>
+    <span class="saved" id="savedTip"><span class="dot"></span><span id="savedText">已保存</span></span>
+  </div>
+
+  <!-- 格式栏 -->
+  <div class="formatbar">
+    <div class="fgroup">
+      <span class="lb">字体</span>
+      <select class="sel" id="fontFamily">
+        <option value='"Consolas","Cascadia Mono",Menlo,monospace'>等宽 Consolas</option>
+        <option value='"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif'>系统默认</option>
+        <option value='"Microsoft YaHei","PingFang SC",sans-serif'>微软雅黑</option>
+        <option value='"KaiTi","STKaiti",serif'>楷体</option>
+        <option value='"SimSun","Songti SC",serif'>宋体</option>
+        <option value='Georgia,"Times New Roman",serif'>Georgia</option>
+      </select>
+    </div>
+
+    <div class="fgroup">
+      <span class="lb">字号</span>
+      <input type="range" id="fontSize" min="11" max="30" step="1" value="15">
+      <b id="fontSizeVal" style="font-size:12px;min-width:34px">15px</b>
+    </div>
+
+    <div class="fgroup">
+      <span class="lb">行距</span>
+      <input type="range" id="lineHeight" min="12" max="26" step="1" value="17">
+      <b id="lineHeightVal" style="font-size:12px;min-width:30px">1.7</b>
+    </div>
+
+    <span class="sep"></span>
+
+    <label class="cb"><input type="checkbox" id="optGutter" checked>行号</label>
+    <label class="cb"><input type="checkbox" id="optWrap" checked>自动换行</label>
+    <label class="cb"><input type="checkbox" id="optTab" checked>Tab 缩进</label>
+
+    <span class="sep"></span>
+
+    <button class="tb-btn" id="btnUpper" title="把选中内容转为大写">AB 大写</button>
+    <button class="tb-btn" id="btnLower" title="把选中内容转为小写">ab 小写</button>
+    <button class="tb-btn" id="btnTrim"  title="去掉每行首尾空白与空行">≡ 整理</button>
+    <button class="tb-btn" id="btnTime"  title="插入日期时间 (Ctrl+D)">🕒 时间</button>
+  </div>
+
+  <!-- 查找替换 -->
+  <div class="findbar" id="findbar">
+    <input type="text" id="findInput" placeholder="查找内容…">
+    <input type="text" id="replaceInput" placeholder="替换为…">
+    <button class="mini" id="findPrev" title="上一个 (Shift+Enter)">↑</button>
+    <button class="mini" id="findNext" title="下一个 (Enter)">↓</button>
+    <button class="mini primary" id="replaceOne">替换</button>
+    <button class="mini" id="replaceAll">全部替换</button>
+    <span class="cnt" id="findCount">0 处</span>
+    <span class="spacer" style="flex:1"></span>
+    <button class="mini" id="findClose">关闭 Esc</button>
+  </div>
+
+  <!-- 编辑区 -->
+  <div class="main">
+    <div class="gutter" id="gutter"><pre id="gutterText">1</pre></div>
+    <div class="editor-wrap">
+      <textarea id="editor" placeholder="在这里开始写吧……&#10;&#10;· 内容会自动保存在浏览器本地，刷新或关掉再打开都还在&#10;· Ctrl+S 保存成 txt 文件，Ctrl+O 打开本地文件&#10;· Ctrl+F 查找替换，F11 进入专注模式"></textarea>
+    </div>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>行 <b id="stLines">1</b></span>
+    <span>列 <b id="stCol">1</b></span>
+    <span>选中 <b id="stSel">0</b></span>
+    <span>字符 <b id="stChars">0</b></span>
+    <span>词 <b id="stWords">0</b></span>
+    <span class="sp"></span>
+    <span id="stEncoding">UTF-8 · 纯文本</span>
+    <span><kbd>Ctrl</kbd>+<kbd>S</kbd> 保存 · <kbd>F11</kbd> 专注 · <kbd>Ctrl</kbd>+<kbd>F</kbd> 查找</span>
+  </div>
+</div>
+
+<!-- 帮助 -->
+<div class="modal" id="helpModal">
+  <div class="modal-box">
+    <h2>记事本 · 快捷键与说明</h2>
+    <div class="sub">一个完全运行在浏览器本地的纯文本编辑器，没有任何服务器与账号。</div>
+    <div class="kv"><b>Ctrl + S</b><span>下载为 .txt 文件</span></div>
+    <div class="kv"><b>Ctrl + O</b><span>打开本地 txt / md / json 等文本文件</span></div>
+    <div class="kv"><b>Ctrl + N</b><span>新建（会先保存当前内容）</span></div>
+    <div class="kv"><b>Ctrl + F</b><span>查找与替换</span></div>
+    <div class="kv"><b>Ctrl + D</b><span>插入当前日期时间</span></div>
+    <div class="kv"><b>Ctrl + Shift + C</b><span>复制全部内容</span></div>
+    <div class="kv"><b>Ctrl + A</b><span>全选（浏览器原生）</span></div>
+    <div class="kv"><b>Tab / Shift + Tab</b><span>缩进 / 反缩进选中行</span></div>
+    <div class="kv"><b>F11</b><span>专注模式（隐藏所有工具栏）</span></div>
+    <div class="kv"><b>Esc</b><span>退出专注模式 / 关闭查找栏</span></div>
+    <div class="kv" style="margin-top:10px"><b>数据存在哪？</b><span>浏览器 localStorage</span></div>
+    <div style="font-size:12.5px;color:var(--muted);line-height:1.75;margin-top:8px">
+      正文、文件名、字体字号与主题偏好都会自动保存到当前浏览器的本地存储，
+      刷新、关闭浏览器再打开都不丢失。但清除浏览器数据、使用无痕窗口、
+      或换一个浏览器 / 换一个域名打开，内容不会跟随——重要内容请用
+      <b>Ctrl + S</b> 导出成文件保存。
+    </div>
+    <div class="modal-actions">
+      <button class="mini" id="helpClose">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新建确认 -->
+<div class="modal" id="newModal">
+  <div class="modal-box">
+    <h2>新建文档</h2>
+    <div class="sub">清空编辑器开始新文档。当前内容已自动保存过，但仍建议先导出留档。</div>
+    <div class="modal-actions">
+      <button class="mini" id="newCancel">取消</button>
+      <button class="mini primary" id="newConfirm">清空并新建</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".txt,.md,.json,.csv,.log,.html,.css,.js,text/*" style="display:none">
+<div id="toasts"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ================================================================
+   常量
+   ================================================================ */
+var KEY = {
+  doc:   'notepad.doc.v1',      // 正文 + 文件名
+  prefs: 'notepad.prefs.v1'     // 字体 / 字号 / 行距 / 主题 / 选项
+};
+
+/* ================================================================
+   小工具
+   ================================================================ */
+function $(id) { return document.getElementById(id); }
+function load(k, fb) {
+  try { var r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; }
+  catch (e) { console.warn('读取失败', k, e); return fb; }
+}
+function store(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch (e) {
+    console.warn('写入失败', k, e);
+    toast('⚠️', '保存失败：本地存储可能已满或被浏览器禁用。请用 Ctrl+S 导出文件留档。', 6000);
+    return false;
+  }
+}
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function stamp() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+         pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+function toast(icon, text, ms) {
+  var box = $('toasts');
+  var t = document.createElement('div');
+  t.className = 'toast';
+  var i = document.createElement('span'); i.textContent = icon;
+  var s = document.createElement('span'); s.textContent = text;
+  t.appendChild(i); t.appendChild(s);
+  box.appendChild(t);
+  setTimeout(function () {
+    t.classList.add('out');
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+  }, ms || 2400);
+}
+
+/* ================================================================
+   元素
+   ================================================================ */
+var app     = $('app');
+var editor  = $('editor');
+var gutter  = $('gutter');
+var gtext   = $('gutterText');
+var savedT  = $('savedText');
+var savedW  = $('savedTip');
+
+/* ================================================================
+   偏好设置
+   ================================================================ */
+var P = Object.assign({
+  theme: 'auto',
+  fontFamily: '"Consolas","Cascadia Mono",Menlo,monospace',
+  fontSize: 15,
+  lineHeight: 1.7,
+  gutter: true,
+  wrap: true,
+  tabIndent: true
+}, load(KEY.prefs, {}));
+function savePrefs() { store(KEY.prefs, P); }
+
+function themeNow() {
+  if (P.theme === 'auto') {
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  return P.theme;
+}
+function applyPrefs() {
+  document.documentElement.setAttribute('data-theme', themeNow());
+  $('btnTheme').textContent = themeNow() === 'dark' ? '☀️' : '🌙';
+
+  editor.style.fontFamily = P.fontFamily;
+  editor.style.fontSize = P.fontSize + 'px';
+  editor.style.lineHeight = P.lineHeight;
+  gtext.style.fontFamily = P.fontFamily;   // 行号与正文同字体，保证逐行对齐
+  gtext.style.lineHeight = P.lineHeight;
+  gtext.style.fontSize = P.fontSize + 'px';
+
+  gutter.classList.toggle('hide', !P.gutter);
+  editor.classList.toggle('nowrap', !P.wrap);
+
+  $('fontFamily').value = P.fontFamily;
+  $('fontSize').value = P.fontSize;
+  $('fontSizeVal').textContent = P.fontSize + 'px';
+  $('lineHeight').value = Math.round(P.lineHeight * 10);
+  $('lineHeightVal').textContent = P.lineHeight.toFixed(1);
+  $('optGutter').checked = P.gutter;
+  $('optWrap').checked = P.wrap;
+  $('optTab').checked = P.tabIndent;
+
+  layoutGutter();
+}
+
+/* ================================================================
+   文档：自动保存
+   ================================================================ */
+var dirty = false, saveTimer = null;
+
+function markDirty() {
+  dirty = true;
+  savedW.classList.add('dirty');
+  savedT.textContent = '未保存…';
+}
+function markSaved() {
+  dirty = false;
+  savedW.classList.remove('dirty');
+  savedT.textContent = '已保存 ' + pad2(new Date().getHours()) + ':' + pad2(new Date().getMinutes());
+}
+function saveDoc(now) {
+  var ok = store(KEY.doc, { text: editor.value, name: $('fileName').value });
+  if (ok) markSaved();
+  return ok;
+}
+function scheduleSave() {
+  markDirty();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function () { saveDoc(); }, 600);
+}
+
+/* ================================================================
+   统计与行号
+   ================================================================ */
+function countWords(s) {
+  if (!s) return 0;
+  var cn = s.match(/[\u4e00-\u9fa5\u3040-\u30ff]/g);
+  var en = s.match(/[A-Za-z0-9_'\u00c0-\u024f]+/g);
+  return (cn ? cn.length : 0) + (en ? en.length : 0);
+}
+function caretPos() {
+  var v = editor.value, p = editor.selectionStart, line = 1, last = v.lastIndexOf('\n', p - 1);
+  line = v.slice(0, p).split('\n').length;
+  return { line: line, col: p - last };
+}
+function updateStats() {
+  var v = editor.value;
+  var cp = caretPos();
+  var sel = editor.selectionEnd - editor.selectionStart;
+  $('stLines').textContent = v ? v.split('\n').length : 1;
+  $('stCol').textContent = cp.col;
+  $('stSel').textContent = sel > 0 ? sel + ' 字符' : '0';
+  $('stChars').textContent = v.length;
+  $('stWords').textContent = countWords(v);
+  syncScroll();
+}
+function layoutGutter() {
+  if (!P.gutter) return;
+  var n = editor.value ? editor.value.split('\n').length : 1;
+  var out = [];
+  for (var i = 1; i <= n; i++) out.push(i);
+  gtext.textContent = out.join('\n');
+  syncScroll();
+}
+function syncScroll() {
+  gutter.scrollTop = editor.scrollTop;
+  gtext.style.transform = 'translateY(0)';
+}
+
+/* ================================================================
+   编辑操作
+   ================================================================ */
+/** 替换选中内容并保持撤销栈友好（使用 execCommand 以保留原生撤销） */
+function replaceSelection(text, selStart, selEnd) {
+  editor.focus();
+  var s = selStart != null ? selStart : editor.selectionStart;
+  var e = selEnd != null ? selEnd : editor.selectionEnd;
+  if (selStart != null) editor.setSelectionRange(s, e);
+  var ok = false;
+  try { ok = document.execCommand('insertText', false, text); } catch (err) { ok = false; }
+  if (!ok) {
+    var v = editor.value;
+    editor.value = v.slice(0, s) + text + v.slice(e);
+    editor.setSelectionRange(s + text.length, s + text.length);
+  }
+  afterEdit();
+}
+function afterEdit() {
+  scheduleSave();
+  updateStats();
+  layoutGutter();
+}
+function lineRange(pos) {
+  var v = editor.value;
+  var start = v.lastIndexOf('\n', pos - 1) + 1;
+  var end = v.indexOf('\n', pos);
+  if (end === -1) end = v.length;
+  return { start: start, end: end };
+}
+function indentSelection(outdent) {
+  var v = editor.value;
+  var a = editor.selectionStart, b = editor.selectionEnd;
+  var first = lineRange(a).start;
+  var lastL = lineRange(b > a ? b - 1 : b).end;
+  var block = v.slice(first, lastL);
+  var lines = block.split('\n');
+  var pad = '    ';
+  var changed = lines.map(function (ln) {
+    if (outdent) return ln.replace(/^(\t| {1,4})/, '');
+    return pad + ln;
+  });
+  var next = changed.join('\n');
+  var deltaFirst = changed[0].length - lines[0].length;
+  var deltaAll = next.length - block.length;
+  replaceSelection(next, first, lastL);
+  editor.setSelectionRange(Math.max(first, a + deltaFirst), b + deltaAll);
+  afterEdit();
+}
+function transformSelection(fn) {
+  var a = editor.selectionStart, b = editor.selectionEnd;
+  if (a === b) { toast('ℹ️', '请先选中一段文本', 2000); return; }
+  var sel = editor.value.slice(a, b);
+  var out = fn(sel);
+  if (out === sel) return;
+  replaceSelection(out, a, b);
+  editor.setSelectionRange(a, a + out.length);
+}
+function tidyText(s) {
+  return s.split('\n')
+    .map(function (l) { return l.replace(/[ \t]+$/, '').replace(/^[ \t]+/, ''); })
+    .filter(function (l, i, arr) { return !(l === '' && arr[i - 1] === ''); })
+    .join('\n');
+}
+
+/* ================================================================
+   查找替换
+   ================================================================ */
+var findOpen = false, findIdx = -1;
+
+function openFind() {
+  findOpen = true;
+  $('findbar').classList.add('on');
+  var a = editor.selectionStart, b = editor.selectionEnd;
+  if (b > a && !editor.value.slice(a, b).includes('\n')) $('findInput').value = editor.value.slice(a, b);
+  $('findInput').focus();
+  $('findInput').select();
+  doFind(true);
+}
+function closeFind() {
+  findOpen = false;
+  $('findbar').classList.remove('on');
+  editor.focus();
+}
+function allMatches() {
+  var q = $('findInput').value;
+  var v = editor.value;
+  if (!q) return [];
+  var res = [], i = 0;
+  var lowerV = v.toLowerCase(), lowerQ = q.toLowerCase();
+  while (true) {
+    var p = lowerV.indexOf(lowerQ, i);
+    if (p === -1) break;
+    res.push(p);
+    i = p + Math.max(1, q.length);
+    if (res.length > 20000) break;
+  }
+  return res;
+}
+function doFind(fromStart) {
+  var q = $('findInput').value;
+  var hits = allMatches();
+  $('findCount').textContent = hits.length ? (hits.length + ' 处') : (q ? '无匹配' : '0 处');
+  if (!hits.length) { findIdx = -1; return; }
+  var cur = editor.selectionStart;
+  var idx = -1;
+  if (fromStart || findIdx < 0) {
+    for (var i = 0; i < hits.length; i++) { if (hits[i] >= cur) { idx = i; break; } }
+    if (idx === -1) idx = 0;
+  } else {
+    idx = findIdx;
+  }
+  findIdx = idx;
+  var p = hits[idx];
+  editor.focus();
+  editor.setSelectionRange(p, p + q.length);
+  // 滚动到可视区域
+  var before = editor.value.slice(0, p);
+  var lineNo = before.split('\n').length;
+  var lh = P.fontSize * P.lineHeight;
+  var target = (lineNo - 1) * lh - editor.clientHeight / 2 + lh;
+  editor.scrollTop = Math.max(0, target);
+  syncScroll(); updateStats();
+}
+function stepFind(dir) {
+  var hits = allMatches();
+  if (!hits.length) { doFind(true); return; }
+  if (findIdx < 0) { doFind(true); return; }
+  findIdx = (findIdx + dir + hits.length) % hits.length;
+  var q = $('findInput').value;
+  var p = hits[findIdx];
+  editor.focus();
+  editor.setSelectionRange(p, p + q.length);
+  var lineNo = editor.value.slice(0, p).split('\n').length;
+  var lh = P.fontSize * P.lineHeight;
+  editor.scrollTop = Math.max(0, (lineNo - 1) * lh - editor.clientHeight / 2 + lh);
+  syncScroll(); updateStats();
+  $('findCount').textContent = (findIdx + 1) + ' / ' + hits.length;
+}
+function replaceOne() {
+  var q = $('findInput').value, r = $('replaceInput').value;
+  if (!q) return;
+  var sel = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+  if (sel.toLowerCase() !== q.toLowerCase()) { doFind(true); return; }
+  var a = editor.selectionStart;
+  replaceSelection(r, a, editor.selectionEnd);
+  editor.setSelectionRange(a + r.length, a + r.length);
+  findIdx = -1;
+  doFind(false);
+  afterEdit();
+}
+function replaceAll() {
+  var q = $('findInput').value, r = $('replaceInput').value;
+  if (!q) return;
+  var hits = allMatches();
+  if (!hits.length) { toast('ℹ️', '没有找到匹配内容', 2000); return; }
+  if (!confirm('将把 ' + hits.length + ' 处「' + q + '」全部替换为「' + r + '」，确定吗？')) return;
+  var v = editor.value, lowerV = v.toLowerCase(), lowerQ = q.toLowerCase();
+  var out = '', i = 0;
+  while (true) {
+    var p = lowerV.indexOf(lowerQ, i);
+    if (p === -1) break;
+    out += v.slice(i, p) + r;
+    i = p + q.length;
+  }
+  out += v.slice(i);
+  editor.focus();
+  editor.select();
+  replaceSelection(out);
+  editor.setSelectionRange(0, 0);
+  afterEdit();
+  $('findCount').textContent = '已替换 ' + hits.length + ' 处';
+  toast('✅', '已替换 ' + hits.length + ' 处', 2400);
+}
+
+/* ================================================================
+   文件：打开 / 保存 / 复制
+   ================================================================ */
+function download() {
+  var name = ($('fileName').value || '未命名').replace(/[\\/:*?"<>|]/g, '_').trim() || '未命名';
+  var blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = name + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  saveDoc();
+  toast('💾', '已导出 ' + name + '.txt（' + editor.value.length + ' 字符）', 3000);
+}
+function openFile() { $('fileInput').click(); }
+$('fileInput').addEventListener('change', function (e) {
+  var f = e.target.files && e.target.files[0];
+  if (!f) return;
+  if (f.size > 6 * 1024 * 1024) {
+    if (!confirm('文件约 ' + (f.size / 1048576).toFixed(1) + ' MB，可能超出浏览器本地存储容量，仍要打开吗？')) {
+      e.target.value = ''; return;
+    }
+  }
+  var reader = new FileReader();
+  reader.onload = function (ev) {
+    editor.value = String(ev.target.result || '');
+    $('fileName').value = f.name.replace(/\.[^.]+$/, '').slice(0, 60) || '未命名';
+    editor.setSelectionRange(0, 0);
+    editor.scrollTop = 0;
+    afterEdit();
+    saveDoc();
+    toast('📂', '已打开「' + f.name + '」，内容已载入编辑器', 3200);
+  };
+  reader.onerror = function () { toast('⚠️', '读取文件失败，请重试', 3000); };
+  reader.readAsText(f, 'utf-8');
+  e.target.value = '';
+});
+function copyAll() {
+  var text = editor.value;
+  function fallback() {
+    editor.focus(); editor.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    editor.setSelectionRange(0, 0);
+    toast(ok ? '📋' : '⚠️', ok ? '已复制 ' + text.length + ' 字符到剪贴板' : '复制失败，请手动 Ctrl+C', 2600);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      toast('📋', '已复制 ' + text.length + ' 字符到剪贴板', 2600);
+    }).catch(fallback);
+  } else fallback();
+}
+function insertStamp() {
+  var cp = caretPos();
+  replaceSelection('[' + stamp() + '] ', null, null);
+  toast('🕒', '已插入时间戳', 1800);
+}
+function newDoc() { $('newModal').classList.add('on'); }
+$('newConfirm').addEventListener('click', function () {
+  $('newModal').classList.remove('on');
+  editor.value = '';
+  $('fileName').value = '未命名';
+  editor.setSelectionRange(0, 0);
+  afterEdit(); saveDoc();
+  editor.focus();
+  toast('🗋', '已新建空白文档', 2000);
+});
+$('newCancel').addEventListener('click', function () { $('newModal').classList.remove('on'); });
+
+/* ================================================================
+   专注模式
+   ================================================================ */
+var zen = false;
+function toggleZen() {
+  zen = !zen;
+  app.classList.toggle('zen', zen);
+  $('btnZen').classList.toggle('on', zen);
+  toast(zen ? '🧘' : '↩️', zen ? '已进入专注模式，按 F11 或 Esc 退出' : '已退出专注模式', 2400);
+  setTimeout(function () { editor.focus(); }, 60);
+}
+
+/* ================================================================
+   事件绑定
+   ================================================================ */
+editor.addEventListener('input', function () { scheduleSave(); updateStats(); layoutGutter(); });
+editor.addEventListener('keyup', function () { updateStats(); });
+editor.addEventListener('click', function () { updateStats(); });
+editor.addEventListener('select', function () { updateStats(); });
+editor.addEventListener('scroll', syncScroll);
+
+editor.addEventListener('keydown', function (e) {
+  // Tab 缩进 / 反缩进
+  if (e.key === 'Tab' && P.tabIndent) {
+    e.preventDefault();
+    var a = editor.selectionStart, b = editor.selectionEnd;
+    if (a === b) replaceSelection('    ', null, null);
+    else indentSelection(e.shiftKey);
+    return;
+  }
+  // 回车自动延续缩进
+  if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    var pos = editor.selectionStart;
+    var r = lineRange(pos);
+    var lineTxt = editor.value.slice(r.start, pos);
+    var indent = (lineTxt.match(/^[ \t]*/) || [''])[0];
+    var extra = /[{\[(（【]\s*$/.test(lineTxt) ? '    ' : '';
+    if (indent || extra) {
+      e.preventDefault();
+      replaceSelection('\n' + indent + extra, null, null);
+    }
+    return;
+  }
+});
+
+$('fileName').addEventListener('input', scheduleSave);
+$('fileName').addEventListener('keydown', function (e) { if (e.key === 'Enter') editor.focus(); });
+
+$('btnSave').addEventListener('click', download);
+$('btnOpen').addEventListener('click', openFile);
+$('btnCopy').addEventListener('click', copyAll);
+$('btnNew').addEventListener('click', newDoc);
+$('btnFind').addEventListener('click', function () { findOpen ? closeFind() : openFind(); });
+$('btnZen').addEventListener('click', toggleZen);
+$('btnTime').addEventListener('click', insertStamp);
+$('btnUpper').addEventListener('click', function () { transformSelection(function (s) { return s.toUpperCase(); }); });
+$('btnLower').addEventListener('click', function () { transformSelection(function (s) { return s.toLowerCase(); }); });
+$('btnTrim').addEventListener('click', function () {
+  var a = editor.selectionStart, b = editor.selectionEnd;
+  if (a !== b) { transformSelection(tidyText); toast('≡', '已整理选中内容', 2000); return; }
+  editor.value = tidyText(editor.value);
+  afterEdit();
+  toast('≡', '已整理全文：去掉行首尾空白与多余空行', 2600);
+});
+$('btnTheme').addEventListener('click', function () {
+  P.theme = themeNow() === 'dark' ? 'light' : 'dark';
+  savePrefs(); applyPrefs();
+});
+$('btnHelp').addEventListener('click', function () { $('helpModal').classList.add('on'); });
+$('helpClose').addEventListener('click', function () { $('helpModal').classList.remove('on'); });
+
+$('fontFamily').addEventListener('change', function (e) { P.fontFamily = e.target.value; savePrefs(); applyPrefs(); });
+$('fontSize').addEventListener('input', function (e) { P.fontSize = +e.target.value; savePrefs(); applyPrefs(); });
+$('lineHeight').addEventListener('input', function (e) { P.lineHeight = (+e.target.value) / 10; savePrefs(); applyPrefs(); });
+$('optGutter').addEventListener('change', function (e) { P.gutter = e.target.checked; savePrefs(); applyPrefs(); });
+$('optWrap').addEventListener('change', function (e) { P.wrap = e.target.checked; savePrefs(); applyPrefs(); });
+$('optTab').addEventListener('change', function (e) { P.tabIndent = e.target.checked; savePrefs(); });
+
+$('findInput').addEventListener('input', function () { findIdx = -1; doFind(true); });
+$('findInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? stepFind(-1) : stepFind(1); }
+  if (e.key === 'Escape') closeFind();
+});
+$('replaceInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); replaceOne(); }
+  if (e.key === 'Escape') closeFind();
+});
+$('findNext').addEventListener('click', function () { stepFind(1); });
+$('findPrev').addEventListener('click', function () { stepFind(-1); });
+$('replaceOne').addEventListener('click', replaceOne);
+$('replaceAll').addEventListener('click', replaceAll);
+$('findClose').addEventListener('click', closeFind);
+
+/* 关闭浮层 */
+document.querySelectorAll('.modal').forEach(function (m) {
+  m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('on'); });
+});
+
+/* 全局快捷键 */
+document.addEventListener('keydown', function (e) {
+  var mod = e.ctrlKey || e.metaKey;
+  if (e.key === 'F11') { e.preventDefault(); toggleZen(); return; }
+  if (e.key === 'Escape') {
+    if ($('helpModal').classList.contains('on')) { $('helpModal').classList.remove('on'); return; }
+    if ($('newModal').classList.contains('on')) { $('newModal').classList.remove('on'); return; }
+    if (findOpen) { closeFind(); return; }
+    if (zen) { toggleZen(); return; }
+  }
+  if (!mod) return;
+  var k = e.key.toLowerCase();
+  if (k === 's') { e.preventDefault(); download(); }
+  else if (k === 'o') { e.preventDefault(); openFile(); }
+  else if (k === 'n') { e.preventDefault(); newDoc(); }
+  else if (k === 'f') { e.preventDefault(); findOpen ? $('findInput').focus() : openFind(); }
+  else if (k === 'd') { e.preventDefault(); insertStamp(); }
+  else if (k === 'c' && e.shiftKey) { e.preventDefault(); copyAll(); }
+});
+
+/* 多标签页同步 */
+window.addEventListener('storage', function (e) {
+  if (e.key !== KEY.doc || dirty) return;
+  var d = load(KEY.doc, null);
+  if (d && d.text !== editor.value) {
+    editor.value = d.text || '';
+    $('fileName').value = d.name || '未命名';
+    layoutGutter(); updateStats();
+    toast('🔄', '已同步另一个窗口中的修改', 2600);
+  }
+});
+
+/* 关页面前落盘 */
+window.addEventListener('beforeunload', function () {
+  if (dirty) saveDoc();
+});
+document.addEventListener('visibilitychange', function () { if (document.hidden && dirty) saveDoc(); });
+
+/* 系统主题跟随 */
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    if (P.theme === 'auto') applyPrefs();
+  });
+}
+
+/* 拖入文件直接打开 */
+['dragover', 'drop'].forEach(function (ev) {
+  document.addEventListener(ev, function (e) {
+    e.preventDefault();
+    if (ev !== 'drop') return;
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function (x) {
+      editor.value = String(x.target.result || '');
+      $('fileName').value = f.name.replace(/\.[^.]+$/, '').slice(0, 60) || '未命名';
+      afterEdit(); saveDoc();
+      toast('📂', '已拖入并打开「' + f.name + '」', 3000);
+    };
+    reader.readAsText(f, 'utf-8');
+  });
+});
+
+/* ================================================================
+   启动
+   ================================================================ */
+function boot() {
+  var doc = load(KEY.doc, null);
+  editor.value = (doc && typeof doc.text === 'string') ? doc.text : '';
+  $('fileName').value = (doc && doc.name) ? doc.name : '未命名';
+
+  applyPrefs();
+  layoutGutter();
+  updateStats();
+  markSaved();
+
+  editor.focus();
+  editor.setSelectionRange(editor.value.length, editor.value.length);
+
+  if (!editor.value) {
+    toast('👋', '欢迎使用记事本：内容自动保存在本地，Ctrl+S 可导出 txt 文件。', 4200);
+  }
+}
+
+try { boot(); }
+catch (err) {
+  console.error(err);
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;background:#e5484d;color:#fff;' +
+    'padding:11px 15px;z-index:999;font-size:13px';
+  box.textContent = '记事本启动出错：' + err.message;
+  document.body.appendChild(box);
+}
+})();
+</script>
+</body>
+</html>
