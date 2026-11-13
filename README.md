@@ -12,3 +12,4 @@
 |计算器|DeepSeek V4.1 Flash|纯前端计算器小工具|2026年10月11日|2026年10月11日|[点击前往](https://t-pagecode.github.io/AI-Generated-Content/计算器/index.html)|
 ## 开源协议
 MIT License
+© 2026 T-PageCode.
