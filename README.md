@@ -14,3 +14,4 @@
 ## 开源协议
 MIT License
 © 2026 T-PageCode.
+AI GENERATED.
