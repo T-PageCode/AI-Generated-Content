@@ -1,0 +1,4164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="paper">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f3f2ed">
+<title>贪吃蛇 · 单人与联机</title>
+<style>
+  :root {
+    --font-sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Consolas", monospace;
+    --radius-xl: 28px;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+  }
+  html[data-theme="paper"] {
+    --bg: #f3f2ed;
+    --card: #ffffff;
+    --soft: #f7f6f0;
+    --soft-2: #f0efe7;
+    --text: #1d221e;
+    --muted: #747b73;
+    --faint: #9aa097;
+    --line: #e6e5dd;
+    --line-strong: #d7d6cb;
+    --accent: #1f9d78;
+    --accent-strong: #168563;
+    --accent-soft: #e2f4ed;
+    --on-accent: #ffffff;
+    --danger: #cc5b4d;
+    --danger-soft: #fbece9;
+    --shadow: 0 28px 80px -52px rgba(28, 38, 30, .45);
+    --overlay: rgba(244, 243, 237, .76);
+    --wheel-bg: rgba(255, 255, 255, .82);
+    --tag-bg: #f0efe8;
+    color-scheme: light;
+  }
+  html[data-theme="night"] {
+    --bg: #0e1116;
+    --card: #151a20;
+    --soft: #1a2028;
+    --soft-2: #1f2630;
+    --text: #edf1f4;
+    --muted: #8e98a5;
+    --faint: #6d7784;
+    --line: #252d36;
+    --line-strong: #35404b;
+    --accent: #55d6ae;
+    --accent-strong: #76e4c1;
+    --accent-soft: #16382f;
+    --on-accent: #082019;
+    --danger: #ee7c6d;
+    --danger-soft: #3a211f;
+    --shadow: 0 32px 90px -50px rgba(0, 0, 0, .85);
+    --overlay: rgba(10, 14, 19, .78);
+    --wheel-bg: rgba(21, 26, 32, .82);
+    --tag-bg: #1f2630;
+    color-scheme: dark;
+  }
+  html[data-theme="forest"] {
+    --bg: #0f1a14;
+    --card: #15231b;
+    --soft: #192a20;
+    --soft-2: #1e3125;
+    --text: #edf3ed;
+    --muted: #94a798;
+    --faint: #718577;
+    --line: #273a2e;
+    --line-strong: #354c3d;
+    --accent: #9bca76;
+    --accent-strong: #b1db8d;
+    --accent-soft: #293d24;
+    --on-accent: #12200d;
+    --danger: #e1836d;
+    --danger-soft: #3b271f;
+    --shadow: 0 30px 90px -54px rgba(0, 0, 0, .9);
+    --overlay: rgba(11, 22, 15, .78);
+    --wheel-bg: rgba(21, 35, 27, .84);
+    --tag-bg: #203126;
+    color-scheme: dark;
+  }
+  html[data-theme="clay"] {
+    --bg: #f1e8dd;
+    --card: #fffaf3;
+    --soft: #f8efe4;
+    --soft-2: #f3e7d9;
+    --text: #392c23;
+    --muted: #8c7c6f;
+    --faint: #ad9c8e;
+    --line: #eadbcc;
+    --line-strong: #ddc9b6;
+    --accent: #c46a3e;
+    --accent-strong: #ad582f;
+    --accent-soft: #f7e5d8;
+    --on-accent: #ffffff;
+    --danger: #b94e3d;
+    --danger-soft: #f9e8e3;
+    --shadow: 0 28px 80px -52px rgba(74, 47, 30, .4);
+    --overlay: rgba(244, 234, 222, .78);
+    --wheel-bg: rgba(255, 250, 243, .84);
+    --tag-bg: #f5eadc;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { min-height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background-color .18s ease, color .18s ease;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  ::selection { background: var(--accent-soft); }
+  .icon {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+  }
+  .topbar {
+    width: min(1280px, 100%);
+    margin: 0 auto;
+    min-height: 76px;
+    padding: 18px 28px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    flex: none;
+  }
+  .brand-mark .icon { width: 24px; height: 24px; stroke-width: 2.1; }
+  .brand-copy { min-width: 0; }
+  .brand-title { font-size: 16px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
+  .brand-sub {
+    margin-top: 2px;
+    font-size: 9px;
+    line-height: 1.2;
+    letter-spacing: .17em;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .top-actions { display: flex; align-items: center; gap: 9px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .chip.accent { color: var(--accent); border-color: transparent; background: var(--accent-soft); }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+  .icon-btn:hover { background: var(--soft); border-color: var(--line-strong); }
+  .icon-btn .icon { width: 18px; height: 18px; }
+  main { padding: 0 28px 38px; }
+  .screen { display: none; }
+  .screen.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 150px);
+    padding: 24px 0 44px;
+    animation: screen-in .2s ease both;
+  }
+  #gameScreen.active {
+    display: block;
+    min-height: 0;
+    padding: 6px 0 22px;
+    animation: none;
+  }
+  @keyframes screen-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .eyebrow {
+    display: block;
+    font-size: 10px;
+    line-height: 1.3;
+    letter-spacing: .16em;
+    font-weight: 750;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .menu-card {
+    width: min(840px, 100%);
+    padding: 42px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+  }
+  .menu-hero { max-width: 610px; }
+  .menu-hero h1 {
+    margin: 10px 0 12px;
+    font-size: clamp(42px, 7vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -.055em;
+    font-weight: 760;
+  }
+  .menu-hero p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.75;
+  }
+  .menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .menu-item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--soft);
+    color: var(--text);
+    text-align: left;
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .menu-item:hover { background: var(--card); border-color: var(--line-strong); }
+  .menu-item:first-child { background: var(--accent-soft); border-color: transparent; }
+  .menu-item:first-child:hover { border-color: var(--accent); }
+  .menu-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    flex: none;
+  }
+  .menu-item:first-child .menu-icon { background: var(--card); border-color: transparent; }
+  .menu-copy { min-width: 0; }
+  .menu-copy strong { display: block; font-size: 14px; line-height: 1.35; font-weight: 700; }
+  .menu-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .menu-item:first-child .menu-copy span { color: var(--muted); }
+  .menu-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 26px;
+    padding-top: 17px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .menu-foot span:last-child { font-family: var(--font-mono); font-size: 10px; letter-spacing: .02em; }
+  .online-card, .lobby-card {
+    width: min(860px, 100%);
+    padding: 30px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+  }
+  .online-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .online-head .icon-btn { margin-top: 1px; flex: none; }
+  .online-head h2, .lobby-head h2 {
+    margin: 6px 0 6px;
+    font-size: 27px;
+    line-height: 1.2;
+    letter-spacing: -.03em;
+  }
+  .online-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .online-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+    margin-top: 24px;
+  }
+  .online-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    padding: 21px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--soft);
+  }
+  .panel-kicker { font-size: 10px; letter-spacing: .12em; color: var(--muted); font-weight: 750; }
+  .online-panel h3 { margin: 0; font-size: 17px; line-height: 1.3; letter-spacing: -.015em; }
+  .online-panel > p { margin: -4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+  .online-panel .btn { margin-top: auto; }
+  .identity-row {
+    min-height: 42px;
+    padding: 8px 11px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    font-size: 12px;
+  }
+  .identity-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--dot, var(--accent));
+    flex: none;
+  }
+  .identity-name {
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .identity-style {
+    margin-left: auto;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .online-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .online-meta span:last-child { text-align: right; }
+  .form-note {
+    min-height: 17px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .form-note.error { color: var(--danger); }
+  .btn {
+    min-height: 42px;
+    padding: 0 17px;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 650;
+    transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .btn:hover:not(:disabled) { background: var(--soft); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .btn.block { width: 100%; }
+  .btn.small { min-height: 32px; padding: 0 11px; border-radius: 9px; font-size: 11px; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover:not(:disabled) { color: var(--text); background: var(--soft); }
+  .btn:disabled { opacity: .42; cursor: not-allowed; }
+  .btn .icon { width: 15px; height: 15px; }
+  .btn.loading::after {
+    content: "";
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .code-inputs { display: flex; gap: 8px; }
+  .code-digit {
+    width: 100%;
+    min-width: 0;
+    height: 58px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 13px;
+    background: var(--card);
+    color: var(--text);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 700;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .code-digit:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .lobby-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .lobby-head-right { display: flex; align-items: center; gap: 8px; flex: none; }
+  .room-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 22px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 19px;
+    background: var(--soft);
+  }
+  .room-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+  .room-code {
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 40px;
+    line-height: 1.15;
+    letter-spacing: .18em;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+  .lobby-summary { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 13px; }
+  .summary-chip {
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .lobby-list { display: flex; flex-direction: column; gap: 7px; margin-top: 18px; }
+  .lobby-row {
+    min-height: 57px;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: var(--soft);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .lobby-row.empty {
+    border: 1px dashed var(--line-strong);
+    background: transparent;
+    color: var(--muted);
+    min-height: 53px;
+  }
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    background: var(--player-color, var(--accent));
+    color: #0e1a14;
+    font-size: 13px;
+    font-weight: 800;
+    flex: none;
+  }
+  .lobby-row.empty .avatar {
+    background: transparent;
+    border: 1px dashed var(--line-strong);
+    color: var(--faint);
+    font-size: 17px;
+    font-weight: 500;
+  }
+  .lobby-player-copy { min-width: 0; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .lobby-player-name { font-size: 13px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .lobby-badge {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .lobby-badge.host { background: var(--accent-soft); color: var(--accent); }
+  .lobby-row-empty-text { font-size: 11px; }
+  .lobby-player-style { margin-left: auto; color: var(--muted); font-size: 10px; white-space: nowrap; }
+  .lobby-hint { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; min-height: 17px; }
+  .lobby-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .lobby-note { color: var(--muted); font-size: 10px; line-height: 1.5; }
+  .game-shell {
+    width: min(1240px, calc(100vw - 40px), calc((100vh - 218px) * 1.68421));
+    margin: 0 auto;
+  }
+  .game-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 38px;
+    margin: 0 0 10px;
+  }
+  .game-left, .game-right { display: flex; align-items: center; gap: 7px; flex: none; }
+  .score-strip {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px;
+  }
+  .score-strip::-webkit-scrollbar { display: none; }
+  .score-chip {
+    --player-color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 190px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .score-chip.you { border-color: var(--player-color); }
+  .score-chip.out { opacity: .45; }
+  .score-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--player-color); flex: none; }
+  .score-name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; max-width: 95px; }
+  .score-value { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 650; }
+  .score-you {
+    padding: 1px 4px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 650;
+  }
+  .arena-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1280 / 760;
+    border-radius: 22px;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    isolation: isolate;
+  }
+  #gameCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  .game-foot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 3px 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .game-foot span:first-child { min-width: 0; }
+  .game-foot span:last-child { white-space: nowrap; flex: none; }
+  .steer-wheel {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background: var(--wheel-bg);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 14px 40px -26px rgba(0, 0, 0, .55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+    z-index: 3;
+  }
+  .steer-wheel.visible { opacity: 1; pointer-events: auto; }
+  .steer-wheel:active { cursor: grabbing; }
+  .wheel-ring {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    border: 1px dashed var(--line-strong);
+  }
+  .wheel-needle {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 1px);
+    width: 32%;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: .34;
+    transform-origin: 0 50%;
+    transform: rotate(var(--wheel-angle, 0deg));
+  }
+  .wheel-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--line-strong);
+    transform: translate(-50%, -50%);
+  }
+  .wheel-knob {
+    position: absolute;
+    left: calc(50% + 38%);
+    top: 50%;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--wheel-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .16);
+    transform: translate(-50%, -50%);
+  }
+  .wheel-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 13px;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: .1em;
+    pointer-events: none;
+  }
+  .spectate-banner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px -18px rgba(0, 0, 0, .4);
+  }
+  .game-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: var(--overlay);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  .overlay-card {
+    width: min(390px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 25px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--card);
+    box-shadow: 0 30px 90px -44px rgba(0, 0, 0, .52);
+  }
+  .overlay-title {
+    margin: 7px 0 7px;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -.035em;
+    font-weight: 740;
+    overflow-wrap: anywhere;
+  }
+  .overlay-text { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+  .result-list { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 7px 9px;
+    border-radius: 10px;
+    background: var(--soft);
+    font-size: 11px;
+  }
+  .result-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--player-color, var(--accent)); flex: none; }
+  .result-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+  .result-score { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .result-tag {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .result-tag.win { background: var(--accent-soft); color: var(--accent); }
+  .overlay-note { margin: 13px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+  .overlay-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .overlay-actions .btn { flex: 1; min-width: 0; padding-left: 10px; padding-right: 10px; }
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(8, 13, 10, .4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .modal.open { display: flex; }
+  .settings-panel {
+    width: min(800px, 100%);
+    max-height: min(90vh, 920px);
+    overflow-y: auto;
+    padding: 25px 27px 22px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 26px;
+    box-shadow: 0 35px 100px -42px rgba(0, 0, 0, .55);
+    animation: modal-in .18s ease both;
+  }
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(5px) scale(.995); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .settings-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .settings-head h2 { margin: 5px 0 0; font-size: 26px; line-height: 1.2; letter-spacing: -.035em; }
+  .settings-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .settings-section { min-width: 0; }
+  .settings-section + .settings-section { margin-top: 20px; }
+  .settings-columns .settings-section + .settings-section { margin-top: 0; }
+  .section-title {
+    margin: 0 0 9px;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+  .section-desc { margin: -3px 0 13px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+  .theme-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .theme-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 8px 9px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+    text-align: left;
+    transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+  }
+  .theme-option:hover { border-color: var(--line-strong); }
+  .theme-option.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+  .theme-preview {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: var(--sw-bg);
+    border: 1px solid rgba(0, 0, 0, .09);
+    flex: none;
+    overflow: hidden;
+  }
+  .theme-preview::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    height: 5px;
+    border-radius: 4px;
+    background: var(--sw-accent);
+  }
+  .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mode-option {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+    text-align: left;
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .mode-option:hover { border-color: var(--line-strong); }
+  .mode-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .mode-option h4 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .mode-option p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+  .mini-tag {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .mode-option.selected .mini-tag { background: var(--card); color: var(--accent); }
+  .speed-seg {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--soft);
+    width: 100%;
+  }
+  .speed-seg button {
+    flex: 1;
+    min-height: 31px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .speed-seg button:hover { color: var(--text); }
+  .speed-seg button.selected { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .07); }
+  .settings-players { padding: 20px 0 0; }
+  .profiles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .profile-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--soft);
+  }
+  .profile-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 11px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .profile-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--profile-color, var(--accent)); flex: none; }
+  .profile-head .mini-tag { margin-left: auto; }
+  .field-label { display: block; margin: 0 0 5px; color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .06em; }
+  .text-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .field-gap { height: 10px; }
+  .style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .style-option {
+    min-width: 0;
+    padding: 7px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--card);
+    color: var(--muted);
+    text-align: left;
+    font-size: 9px;
+    font-weight: 650;
+    transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+  }
+  .style-option:hover { border-color: var(--line-strong); }
+  .style-option.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+  .skin-line {
+    display: block;
+    width: 100%;
+    height: 8px;
+    margin-bottom: 5px;
+    border-radius: 999px;
+    background: var(--skin-color, var(--accent));
+  }
+  .skin-line[data-style="stripe"] {
+    background:
+      repeating-linear-gradient(90deg, var(--skin-color, var(--accent)) 0 7px, transparent 7px 12px),
+      var(--accent-soft);
+  }
+  .skin-line[data-style="dot"] {
+    background:
+      radial-gradient(circle at 4px 50%, var(--skin-color, var(--accent)) 0 2.5px, transparent 3px) 0 0 / 9px 8px repeat-x,
+      var(--accent-soft);
+  }
+  .skin-line[data-style="outline"] {
+    background: transparent;
+    border: 2px solid var(--skin-color, var(--accent));
+    height: 8px;
+  }
+  .settings-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 21px;
+    padding-top: 17px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.55;
+  }
+  .settings-footer .btn { flex: none; }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 120;
+    max-width: calc(100vw - 32px);
+    padding: 10px 15px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 8px);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (max-width: 820px) {
+    .topbar { padding: 15px 16px 6px; min-height: 66px; }
+    main { padding: 0 14px 24px; }
+    .screen.active { min-height: calc(100vh - 86px); padding: 12px 0 26px; }
+    .menu-card, .online-card, .lobby-card { padding: 24px; border-radius: 23px; }
+    .menu-hero h1 { font-size: 46px; }
+    .menu-grid { margin-top: 24px; }
+    .online-split { grid-template-columns: 1fr; margin-top: 18px; }
+    .lobby-actions { align-items: stretch; flex-direction: column; }
+    .lobby-actions .btn { width: 100%; }
+    .game-shell { width: min(calc(100vw - 20px), calc((100vh - 206px) * 1.68421)); }
+    .game-top { flex-wrap: wrap; gap: 7px; }
+    .score-strip { order: 3; flex-basis: 100%; justify-content: flex-start; }
+    .score-chip { padding: 5px 8px; }
+    .game-foot { flex-wrap: wrap; gap: 4px 12px; }
+    .settings-panel { padding: 21px 18px 18px; }
+    .settings-columns { grid-template-columns: 1fr; gap: 22px; }
+    .settings-columns .settings-section + .settings-section { margin-top: 0; }
+    .profiles-grid { grid-template-columns: 1fr; }
+    .steer-wheel { width: 102px; height: 102px; right: 12px; bottom: 12px; }
+    .wheel-knob { width: 21px; height: 21px; }
+    .wheel-hint { bottom: 10px; font-size: 7px; }
+    .overlay-card { padding: 21px; }
+  }
+  @media (max-width: 540px) {
+    .brand-sub { display: none; }
+    .top-actions .chip { display: none; }
+    .menu-grid { grid-template-columns: 1fr; gap: 8px; }
+    .menu-card { padding: 22px; }
+    .menu-hero p br { display: none; }
+    .menu-item { padding: 13px; }
+    .menu-foot { align-items: flex-start; flex-direction: column; gap: 4px; margin-top: 20px; }
+    .online-meta { flex-direction: column; align-items: flex-start; gap: 3px; }
+    .online-meta span:last-child { text-align: left; }
+    .room-block { flex-direction: column; align-items: flex-start; }
+    .room-code { font-size: 34px; }
+    .copy-btn { width: 100%; }
+    .theme-options { grid-template-columns: 1fr 1fr; }
+    .mode-options { grid-template-columns: 1fr; }
+    .settings-footer { flex-direction: column; align-items: stretch; }
+    .settings-footer .btn { width: 100%; }
+    .game-left .chip { display: none; }
+    .game-foot { font-size: 10px; }
+    .overlay-actions { flex-direction: column; }
+    .overlay-actions .btn { width: 100%; }
+    .steer-wheel { width: 88px; height: 88px; right: 9px; bottom: 9px; }
+    .wheel-hint { display: none; }
+    .code-digit { height: 52px; font-size: 21px; border-radius: 11px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="i-brand" viewBox="0 0 24 24">
+    <path d="M4.2 17h7.4a3.4 3.4 0 0 0 3.4-3.4v-1.2a3.4 3.4 0 0 1 3.4-3.4h1.4"/>
+    <circle cx="19.8" cy="9" r="1.7" fill="currentColor" stroke="none"/>
+    <circle cx="19.2" cy="8.3" r=".55" fill="#fff" stroke="none" opacity=".8"/>
+  </symbol>
+  <symbol id="i-solo" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5"/>
+    <path d="M10 8.8l5.2 3.2-5.2 3.2V8.8z"/>
+  </symbol>
+  <symbol id="i-duel" viewBox="0 0 24 24">
+    <circle cx="8" cy="9" r="2.6"/>
+    <circle cx="16.5" cy="7.5" r="2"/>
+    <path d="M3.5 19c.4-3.1 2.3-5 4.5-5s4.1 1.9 4.5 5"/>
+    <path d="M14 18.5c.3-2.4 1.7-3.8 3.4-3.8 1.5 0 2.8 1.3 3.1 3.4"/>
+  </symbol>
+  <symbol id="i-online" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5"/>
+    <path d="M3.5 12h17M12 3.5c2.3 2.5 3.6 5.3 3.6 8.5s-1.3 6-3.6 8.5c-2.3-2.5-3.6-5.3-3.6-8.5s1.3-6 3.6-8.5z"/>
+  </symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.08a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.08a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6h.08a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.08a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.08a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-1.56 1z"/>
+  </symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24">
+    <path d="M15 5l-7 7 7 7"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24">
+    <path d="M6 6l12 12M18 6L6 18"/>
+  </symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24">
+    <rect x="9" y="9" width="11" height="11" rx="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24">
+    <path d="M12 5v14M5 12h14"/>
+  </symbol>
+</svg>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><svg class="icon"><use href="#i-brand"/></svg></div>
+    <div class="brand-copy">
+      <div class="brand-title">贪吃蛇</div>
+      <div class="brand-sub">SNAKE ARENA</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="chip" id="modeChip">网格模式</span>
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="设置">
+      <svg class="icon"><use href="#i-settings"/></svg>
+    </button>
+  </div>
+</header>
+<main>
+  <section class="screen active" id="menuScreen">
+    <div class="menu-card">
+      <div class="menu-hero">
+        <span class="eyebrow">轻量 · 顺畅 · 最多四人</span>
+        <h1>贪吃蛇</h1>
+        <p>在同一台电脑上对战，或用一个四位房间码和朋友联机。<br>默认网格模式，也可以在设置里开启自由流畅模式。</p>
+      </div>
+      <div class="menu-grid">
+        <button class="menu-item" type="button" data-start="solo">
+          <span class="menu-icon"><svg class="icon"><use href="#i-solo"/></svg></span>
+          <span class="menu-copy"><strong>单人游戏</strong><span>独自练习，挑战更高长度</span></span>
+        </button>
+        <button class="menu-item" type="button" data-start="duel">
+          <span class="menu-icon"><svg class="icon"><use href="#i-duel"/></svg></span>
+          <span class="menu-copy"><strong>双人对战</strong><span>同一键盘：WASD 与方向键</span></span>
+        </button>
+        <button class="menu-item" type="button" id="onlineMenuBtn">
+          <span class="menu-icon"><svg class="icon"><use href="#i-online"/></svg></span>
+          <span class="menu-copy"><strong>联机对战</strong><span>4 位房间码，最多 4 人</span></span>
+        </button>
+        <button class="menu-item" type="button" id="menuSettingsBtn">
+          <span class="menu-icon"><svg class="icon"><use href="#i-settings"/></svg></span>
+          <span class="menu-copy"><strong>设置</strong><span>主题、速度、样式与名字</span></span>
+        </button>
+      </div>
+      <div class="menu-foot">
+        <span id="bestLabel">单人最佳 0 分</span>
+        <span>WASD / ARROW KEYS</span>
+      </div>
+    </div>
+  </section>
+  <section class="screen" id="onlineScreen">
+    <div class="online-card">
+      <div class="online-head">
+        <button class="icon-btn" type="button" data-back="menu" aria-label="返回">
+          <svg class="icon"><use href="#i-arrow-left"/></svg>
+        </button>
+        <div>
+          <span class="eyebrow">联机</span>
+          <h2>和朋友一起玩</h2>
+          <p>创建房间，把四位房间码发给朋友；或输入朋友发来的房间码。</p>
+        </div>
+      </div>
+      <div class="online-split">
+        <div class="online-panel">
+          <span class="panel-kicker">CREATE</span>
+          <h3>创建房间</h3>
+          <p>使用当前的主题、模式与速度，最多等四位玩家。<br>从 1000–9999 里随机生成房间码。</p>
+          <div class="identity-row" id="createIdentity"></div>
+          <button class="btn primary block" type="button" id="createRoomBtn">创建房间</button>
+        </div>
+        <div class="online-panel">
+          <span class="panel-kicker">JOIN</span>
+          <h3>加入房间</h3>
+          <p>输入朋友发来的 4 位数字。名字和样式会自动带进房间。</p>
+          <div class="code-inputs" id="codeInputs" aria-label="房间码">
+            <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="房间码第 1 位">
+            <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="房间码第 2 位">
+            <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="房间码第 3 位">
+            <input class="code-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="房间码第 4 位">
+          </div>
+          <div class="identity-row" id="joinIdentity"></div>
+          <button class="btn block" type="button" id="joinRoomBtn">加入房间</button>
+        </div>
+      </div>
+      <div class="online-meta">
+        <p class="form-note" id="onlineStatus" role="status"></p>
+        <span>联机需要联网 · 模式、主题与速度以房主为准</span>
+      </div>
+    </div>
+  </section>
+  <section class="screen" id="lobbyScreen">
+    <div class="lobby-card">
+      <div class="lobby-head">
+        <div>
+          <span class="eyebrow">联机大厅</span>
+          <h2>等待玩家加入</h2>
+        </div>
+        <div class="lobby-head-right">
+          <span class="chip" id="lobbyCount">1 / 4</span>
+          <button class="btn small ghost" type="button" id="leaveLobbyBtn">离开</button>
+        </div>
+      </div>
+      <div class="room-block">
+        <div>
+          <div class="room-label">房间码</div>
+          <div class="room-code" id="roomCode">----</div>
+        </div>
+        <button class="btn small copy-btn" type="button" id="copyCodeBtn">
+          <svg class="icon"><use href="#i-copy"/></svg>
+          <span>复制房间码</span>
+        </button>
+      </div>
+      <div class="lobby-summary" id="lobbySummary"></div>
+      <div class="lobby-list" id="lobbyList"></div>
+      <p class="lobby-hint" id="lobbyHint"></p>
+      <div class="lobby-actions">
+        <span class="lobby-note">最多 4 人 · 至少 2 人开始 · 房间设置由房主决定</span>
+        <button class="btn primary" type="button" id="startOnlineBtn" disabled>开始游戏</button>
+      </div>
+    </div>
+  </section>
+  <section class="screen" id="gameScreen">
+    <div class="game-shell">
+      <div class="game-top">
+        <div class="game-left">
+          <button class="btn small" type="button" id="exitGameBtn">退出</button>
+          <span class="chip" id="gameRoomTag" hidden>房间 ----</span>
+        </div>
+        <div class="score-strip" id="scoreStrip"></div>
+        <div class="game-right">
+          <span class="chip" id="gameModeTag">网格模式</span>
+        </div>
+      </div>
+      <div class="arena-wrap" id="arenaWrap">
+        <canvas id="gameCanvas"></canvas>
+        <div class="spectate-banner" id="spectateBanner" hidden>你已淘汰 · 观战中</div>
+        <div class="steer-wheel" id="steerWheel" role="application" aria-label="方向盘：拖动改变小蛇方向">
+          <div class="wheel-ring"></div>
+          <div class="wheel-needle"></div>
+          <div class="wheel-center"></div>
+          <div class="wheel-knob"></div>
+          <div class="wheel-hint">方向盘</div>
+        </div>
+        <div class="game-overlay" id="gameOverlay" hidden>
+          <div class="overlay-card">
+            <span class="eyebrow" id="overlayEyebrow">本局结束</span>
+            <h2 class="overlay-title" id="overlayTitle">游戏结束</h2>
+            <p class="overlay-text" id="overlayText"></p>
+            <div class="result-list" id="overlayResults"></div>
+            <p class="overlay-note" id="overlayNote" hidden></p>
+            <div class="overlay-actions">
+              <button class="btn primary" type="button" id="overlayPrimary">再来一局</button>
+              <button class="btn" type="button" id="overlaySecondary">返回主页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="game-foot">
+        <span id="controlsHint"></span>
+        <span id="netInfo"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="settings-panel">
+    <div class="settings-head">
+      <div>
+        <span class="eyebrow">偏好</span>
+        <h2 id="settingsTitle">设置</h2>
+      </div>
+      <button class="icon-btn" type="button" id="closeSettingsBtn" aria-label="关闭设置">
+        <svg class="icon"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="settings-columns">
+      <section class="settings-section">
+        <h3 class="section-title">主题</h3>
+        <div class="theme-options" id="themeOptions"></div>
+      </section>
+      <div>
+        <section class="settings-section">
+          <h3 class="section-title">速度</h3>
+          <div class="speed-seg" id="speedOptions"></div>
+        </section>
+        <section class="settings-section">
+          <h3 class="section-title">游戏模式</h3>
+          <div class="mode-options" id="modeOptions"></div>
+        </section>
+      </div>
+    </div>
+    <section class="settings-section settings-players">
+      <h3 class="section-title">玩家</h3>
+      <p class="section-desc">联机时，每位玩家使用自己设备上设置的名字和样式；玩家 2 仅用于同屏对战。</p>
+      <div class="profiles-grid">
+        <div class="profile-card" data-player-card="1">
+          <div class="profile-head">
+            <span class="profile-dot" id="profileDot1"></span>
+            <span>玩家 1</span>
+            <span class="mini-tag">你</span>
+          </div>
+          <label class="field-label" for="name1">名字</label>
+          <input class="text-input" id="name1" type="text" maxlength="10" autocomplete="off" spellcheck="false">
+          <div class="field-gap"></div>
+          <span class="field-label">小蛇样式</span>
+          <div class="style-grid" id="styleOptions1"></div>
+        </div>
+        <div class="profile-card" data-player-card="2">
+          <div class="profile-head">
+            <span class="profile-dot" id="profileDot2"></span>
+            <span>玩家 2</span>
+            <span class="mini-tag">同屏对战</span>
+          </div>
+          <label class="field-label" for="name2">名字</label>
+          <input class="text-input" id="name2" type="text" maxlength="10" autocomplete="off" spellcheck="false">
+          <div class="field-gap"></div>
+          <span class="field-label">小蛇样式</span>
+          <div class="style-grid" id="styleOptions2"></div>
+        </div>
+      </div>
+    </section>
+    <div class="settings-footer">
+      <span>更改会自动保存在本机。联机房间以房主设置为准。</span>
+      <button class="btn primary" type="button" id="settingsDoneBtn">完成</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  'use strict';
+  /* ------------------------------------------------------------------
+     Constants / profiles
+     ------------------------------------------------------------------ */
+  const WORLD = { w: 1280, h: 760 };
+  const GRID = { cols: 60, rows: 34, cell: 20, ox: 40, oy: 40 };
+  const BOUNDS = { left: 28, top: 28, right: WORLD.w - 28, bottom: WORLD.h - 28 };
+  const STORE_KEY = 'snakeArena.settings.v1';
+  const BEST_KEY = 'snakeArena.best.v1';
+  const PEER_SCRIPT_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js',
+    'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+    'https://fastly.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'
+  ];
+  const PEER_PREFIX = 'snakearena-v1-';
+  const NET_INTERVAL = 50;
+  const INTERP_DELAY = 82;
+  const SMOOTH = {
+    radius: 9,
+    bodyWidth: 18,
+    bodySpacing: 8,
+    initialLength: 78,
+    growth: 18,
+    turnRate: 5.8
+  };
+  const THEMES = {
+    paper: { label: '纸白', bg: '#f3f2ed', card: '#ffffff', accent: '#1f9d78' },
+    night: { label: '深夜', bg: '#0e1116', card: '#151a20', accent: '#55d6ae' },
+    forest: { label: '森林', bg: '#0f1a14', card: '#15231b', accent: '#9bca76' },
+    clay: { label: '陶土', bg: '#f1e8dd', card: '#fffaf3', accent: '#c46a3e' }
+  };
+  const CANVAS_THEMES = {
+    paper: {
+      bg: '#fbfaf6',
+      grid: 'rgba(35, 44, 36, .055)',
+      dot: 'rgba(35, 44, 36, .12)',
+      border: '#e1e0d6',
+      food: '#dd7445',
+      foodHighlight: 'rgba(255, 249, 240, .48)',
+      labelBg: 'rgba(255, 255, 255, .93)',
+      labelBorder: '#e2e1d8',
+      labelText: '#283028',
+      eye: '#112018'
+    },
+    night: {
+      bg: '#11161c',
+      grid: 'rgba(255, 255, 255, .045)',
+      dot: 'rgba(255, 255, 255, .075)',
+      border: '#252e37',
+      food: '#ff9b68',
+      foodHighlight: 'rgba(255, 245, 232, .36)',
+      labelBg: 'rgba(15, 20, 26, .9)',
+      labelBorder: 'rgba(255, 255, 255, .09)',
+      labelText: '#edf2f3',
+      eye: '#0a1410'
+    },
+    forest: {
+      bg: '#122018',
+      grid: 'rgba(209, 236, 205, .05)',
+      dot: 'rgba(209, 236, 205, .085)',
+      border: '#293b2d',
+      food: '#f0a562',
+      foodHighlight: 'rgba(255, 247, 230, .33)',
+      labelBg: 'rgba(16, 31, 21, .9)',
+      labelBorder: 'rgba(255, 255, 255, .08)',
+      labelText: '#edf4ea',
+      eye: '#0c170f'
+    },
+    clay: {
+      bg: '#fbf3e8',
+      grid: 'rgba(67, 46, 31, .055)',
+      dot: 'rgba(67, 46, 31, .11)',
+      border: '#e7d7c4',
+      food: '#c96039',
+      foodHighlight: 'rgba(255, 250, 242, .45)',
+      labelBg: 'rgba(255, 250, 242, .93)',
+      labelBorder: '#eadbca',
+      labelText: '#3d2d22',
+      eye: '#1d130c'
+    }
+  };
+  const PALETTES = {
+    paper: ['#2aaf82', '#e88b40', '#528fdf', '#c56bcb'],
+    night: ['#58dcb2', '#ffac63', '#79b2ff', '#e698ef'],
+    forest: ['#a4d178', '#edb15c', '#7fb3ef', '#e39be8'],
+    clay: ['#389a76', '#cf7744', '#638bd0', '#b970c0']
+  };
+  const SPEEDS = {
+    slow: { label: '慢', gridMs: 150, smoothSpeed: 165 },
+    normal: { label: '标准', gridMs: 115, smoothSpeed: 205 },
+    fast: { label: '快', gridMs: 88, smoothSpeed: 248 }
+  };
+  const MODE_LABEL = { grid: '网格模式', smooth: '流畅模式' };
+  const SPEED_LABEL = { slow: '慢速', normal: '标准速度', fast: '快速' };
+  const STYLE_LABEL = { solid: '经典', stripe: '条纹', dot: '圆点', outline: '描边' };
+  const DIRECTIONS = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+  const DEFAULT_SETTINGS = {
+    theme: 'paper',
+    mode: 'grid',
+    speed: 'normal',
+    players: {
+      p1: { name: '小绿', style: 'solid' },
+      p2: { name: '小橙', style: 'stripe' }
+    }
+  };
+  /* ------------------------------------------------------------------
+     Tiny helpers
+     ------------------------------------------------------------------ */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const dist2 = (ax, ay, bx, by) => {
+    const dx = ax - bx;
+    const dy = ay - by;
+    return dx * dx + dy * dy;
+  };
+  const dist = (ax, ay, bx, by) => Math.sqrt(dist2(ax, ay, bx, by));
+  const normAngle = (a) => {
+    a = (a + Math.PI) % (Math.PI * 2);
+    if (a < 0) a += Math.PI * 2;
+    return a - Math.PI;
+  };
+  const lerpAngle = (a, b, t) => a + normAngle(b - a) * t;
+  const sanitizeName = (raw, fallback = '玩家') => {
+    const s = Array.from(String(raw == null ? '' : raw)
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .trim())
+      .slice(0, 10)
+      .join('');
+    return s || fallback;
+  };
+  const sanitizeStyle = (v) => (Object.prototype.hasOwnProperty.call(STYLE_LABEL, v) ? v : 'solid');
+  const round1 = (v) => Math.round(v * 10) / 10;
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const pointSegmentDistance2 = (px, py, ax, ay, bx, by) => {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const len2 = vx * vx + vy * vy;
+    let t = 0;
+    if (len2 > 0) t = clamp(((px - ax) * vx + (py - ay) * vy) / len2, 0, 1);
+    return dist2(px, py, ax + vx * t, ay + vy * t);
+  };
+  const cellKey = (x, y) => x + ',' + y;
+  const dirAngle = (dir) => {
+    if (dir.x > 0) return 0;
+    if (dir.x < 0) return Math.PI;
+    if (dir.y > 0) return Math.PI / 2;
+    return -Math.PI / 2;
+  };
+  function roundRectPath(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+  function pathLength(points) {
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+      total += dist(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+    }
+    return total;
+  }
+  function moveTrail(snake, dx, dy) {
+    const last = snake.trail[0];
+    if (!last || dist2(last.x, last.y, dx, dy) > 0.3) {
+      snake.trail.unshift({ x: dx, y: dy });
+    } else {
+      snake.trail[0] = { x: dx, y: dy };
+    }
+    // Keep enough raw path for the visible body plus a little tail margin.
+    const maxLen = snake.bodyLength + 70;
+    let total = 0;
+    let end = snake.trail.length;
+    for (let i = 1; i < snake.trail.length; i++) {
+      total += dist(snake.trail[i - 1].x, snake.trail[i - 1].y, snake.trail[i].x, snake.trail[i].y);
+      if (total >= maxLen) {
+        end = i + 1;
+        break;
+      }
+    }
+    if (end < snake.trail.length) snake.trail.length = end;
+  }
+  function sampleTrail(trail, targetLength, spacing) {
+    if (!trail.length) return [];
+    const pts = [{ x: trail[0].x, y: trail[0].y }];
+    let travelled = 0;
+    let next = spacing;
+    for (let i = 1; i < trail.length && travelled < targetLength; i++) {
+      const ax = trail[i - 1].x;
+      const ay = trail[i - 1].y;
+      const bx = trail[i].x;
+      const by = trail[i].y;
+      const seg = dist(ax, ay, bx, by);
+      if (seg <= 0.0001) continue;
+      while (travelled + seg >= next && next <= targetLength) {
+        const t = (next - travelled) / seg;
+        pts.push({ x: lerp(ax, bx, t), y: lerp(ay, by, t) });
+        next += spacing;
+      }
+      travelled += seg;
+    }
+    // Ensure there is always a tail point even for a very short snake.
+    if (pts.length === 1) {
+      let remaining = targetLength;
+      for (let i = 1; i < trail.length && remaining > 0; i++) {
+        const seg = dist(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y);
+        if (seg >= remaining) {
+          const t = remaining / seg;
+          pts.push({
+            x: lerp(trail[i - 1].x, trail[i].x, t),
+            y: lerp(trail[i - 1].y, trail[i].y, t)
+          });
+          break;
+        }
+        remaining -= seg;
+      }
+      if (pts.length === 1) pts.push({ x: trail[0].x, y: trail[0].y });
+    }
+    return pts;
+  }
+  function makeStraightTrail(x, y, angle, length) {
+    const pts = [];
+    const step = 1.5;
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    for (let d = 0; d <= length; d += step) {
+      pts.push({ x: x - dx * d, y: y - dy * d });
+    }
+    return pts;
+  }
+  /* ------------------------------------------------------------------
+     Persistent settings & app shell
+     ------------------------------------------------------------------ */
+  function loadSettings() {
+    const merged = {
+      theme: DEFAULT_SETTINGS.theme,
+      mode: DEFAULT_SETTINGS.mode,
+      speed: DEFAULT_SETTINGS.speed,
+      players: {
+        p1: { ...DEFAULT_SETTINGS.players.p1 },
+        p2: { ...DEFAULT_SETTINGS.players.p2 }
+      }
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (saved && typeof saved === 'object') {
+        if (THEMES[saved.theme]) merged.theme = saved.theme;
+        if (MODE_LABEL[saved.mode]) merged.mode = saved.mode;
+        if (SPEEDS[saved.speed]) merged.speed = saved.speed;
+        for (const key of ['p1', 'p2']) {
+          if (saved.players && saved.players[key]) {
+            merged.players[key].name = sanitizeName(saved.players[key].name, DEFAULT_SETTINGS.players[key].name);
+            merged.players[key].style = sanitizeStyle(saved.players[key].style);
+          }
+        }
+      }
+    } catch (e) { /* ignore corrupt local storage */ }
+    return merged;
+  }
+  const app = {
+    settings: loadSettings(),
+    best: 0,
+    screen: 'menu',
+    overlayScope: null,
+    toastTimer: 0,
+    saveTimer: 0,
+    wheelDragging: false,
+    wheelAngle: 0,
+    localGameKind: null
+  };
+  const net = {
+    role: null,
+    peer: null,
+    code: null,
+    players: [],
+    roomSettings: null,
+    phase: 'idle',
+    selfSlot: null,
+    conn: null,
+    conns: new Map(),
+    snapTimer: null,
+    busy: false,
+    joinTimer: null,
+    welcomeTimer: null,
+    rejected: false
+  };
+  let activeGame = null;
+  let lastHudSignature = '';
+  let pressedDirs = new Map();
+  let toastTimer = 0;
+  let peerLibPromise = null;
+  let steerTimer = 0;
+  let steerPending = null;
+  let lastSteerSentAt = 0;
+  try {
+    app.best = Math.max(0, Number(localStorage.getItem(BEST_KEY)) || 0);
+  } catch (e) { app.best = 0; }
+  const els = {
+    modeChip: $('#modeChip'),
+    settingsBtn: $('#settingsBtn'),
+    menuSettingsBtn: $('#menuSettingsBtn'),
+    screens: {
+      menu: $('#menuScreen'),
+      online: $('#onlineScreen'),
+      lobby: $('#lobbyScreen'),
+      game: $('#gameScreen')
+    },
+    themeOptions: $('#themeOptions'),
+    speedOptions: $('#speedOptions'),
+    modeOptions: $('#modeOptions'),
+    styleOptions1: $('#styleOptions1'),
+    styleOptions2: $('#styleOptions2'),
+    name1: $('#name1'),
+    name2: $('#name2'),
+    profileDot1: $('#profileDot1'),
+    profileDot2: $('#profileDot2'),
+    createIdentity: $('#createIdentity'),
+    joinIdentity: $('#joinIdentity'),
+    onlineStatus: $('#onlineStatus'),
+    createRoomBtn: $('#createRoomBtn'),
+    joinRoomBtn: $('#joinRoomBtn'),
+    codeInputs: $$('.code-digit'),
+    lobbyCount: $('#lobbyCount'),
+    roomCode: $('#roomCode'),
+    copyCodeBtn: $('#copyCodeBtn'),
+    lobbySummary: $('#lobbySummary'),
+    lobbyList: $('#lobbyList'),
+    lobbyHint: $('#lobbyHint'),
+    startOnlineBtn: $('#startOnlineBtn'),
+    leaveLobbyBtn: $('#leaveLobbyBtn'),
+    exitGameBtn: $('#exitGameBtn'),
+    gameRoomTag: $('#gameRoomTag'),
+    scoreStrip: $('#scoreStrip'),
+    gameModeTag: $('#gameModeTag'),
+    arenaWrap: $('#arenaWrap'),
+    canvas: $('#gameCanvas'),
+    spectateBanner: $('#spectateBanner'),
+    steerWheel: $('#steerWheel'),
+    gameOverlay: $('#gameOverlay'),
+    overlayEyebrow: $('#overlayEyebrow'),
+    overlayTitle: $('#overlayTitle'),
+    overlayText: $('#overlayText'),
+    overlayResults: $('#overlayResults'),
+    overlayNote: $('#overlayNote'),
+    overlayPrimary: $('#overlayPrimary'),
+    overlaySecondary: $('#overlaySecondary'),
+    controlsHint: $('#controlsHint'),
+    netInfo: $('#netInfo'),
+    settingsModal: $('#settingsModal'),
+    closeSettingsBtn: $('#closeSettingsBtn'),
+    settingsDoneBtn: $('#settingsDoneBtn'),
+    bestLabel: $('#bestLabel'),
+    toast: $('#toast')
+  };
+  const ctx = els.canvas.getContext('2d');
+  let canvasSize = { w: 0, h: 0, dpr: 1, scale: 1 };
+  function saveSettingsSoon() {
+    clearTimeout(app.saveTimer);
+    app.saveTimer = setTimeout(() => {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(app.settings)); } catch (e) { /* ignore */ }
+    }, 180);
+  }
+  function applyTheme(id) {
+    const theme = THEMES[id] ? id : 'paper';
+    document.documentElement.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEMES[theme].bg);
+  }
+  function setBest(next) {
+    app.best = Math.max(app.best, next);
+    try { localStorage.setItem(BEST_KEY, String(app.best)); } catch (e) { /* ignore */ }
+    els.bestLabel.textContent = '单人最佳 ' + app.best + ' 分';
+  }
+  function showToast(message) {
+    if (!message) return;
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2600);
+  }
+  function setOnlineStatus(message, isError = false) {
+    els.onlineStatus.textContent = message || '';
+    els.onlineStatus.classList.toggle('error', !!isError);
+    if (app.screen === 'online') {
+      els.onlineStatus.hidden = false;
+    }
+  }
+  function setScreen(name, options = {}) {
+    if (!els.screens[name]) return;
+    app.screen = name;
+    Object.entries(els.screens).forEach(([key, el]) => {
+      el.classList.toggle('active', key === name);
+    });
+    const inGame = name === 'game';
+    const inLobby = name === 'lobby';
+    els.modeChip.hidden = inGame || inLobby;
+    els.settingsBtn.hidden = inGame || inLobby;
+    if (inGame) {
+      requestAnimationFrame(resizeCanvas);
+    }
+    if (options.scrollTop !== false) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }
+  function refreshModeLabel() {
+    els.modeChip.textContent = MODE_LABEL[app.settings.mode];
+    els.bestLabel.textContent = '单人最佳 ' + app.best + ' 分';
+  }
+  function playerColor(slot, themeId = app.settings.theme) {
+    const palette = PALETTES[themeId] || PALETTES.paper;
+    return palette[slot % palette.length];
+  }
+  function makeIdentityRow(rowEl, playerIndex) {
+    if (!rowEl) return;
+    const player = app.settings.players[playerIndex === 2 ? 'p2' : 'p1'];
+    rowEl.replaceChildren();
+    const dot = document.createElement('span');
+    dot.className = 'identity-dot';
+    dot.style.setProperty('--dot', playerColor(playerIndex - 1));
+    const name = document.createElement('span');
+    name.className = 'identity-name';
+    name.textContent = player.name;
+    const style = document.createElement('span');
+    style.className = 'identity-style';
+    style.textContent = STYLE_LABEL[player.style];
+    rowEl.append(dot, name, style);
+  }
+  function refreshIdentities() {
+    makeIdentityRow(els.createIdentity, 1);
+    makeIdentityRow(els.joinIdentity, 1);
+    els.profileDot1.style.setProperty('--profile-color', playerColor(0));
+    els.profileDot2.style.setProperty('--profile-color', playerColor(1));
+  }
+  function buildThemeOptions() {
+    els.themeOptions.replaceChildren();
+    for (const [id, meta] of Object.entries(THEMES)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'theme-option';
+      btn.dataset.themeValue = id;
+      btn.setAttribute('aria-pressed', String(app.settings.theme === id));
+      const preview = document.createElement('span');
+      preview.className = 'theme-preview';
+      preview.style.setProperty('--sw-bg', meta.bg);
+      preview.style.setProperty('--sw-accent', meta.accent);
+      const label = document.createElement('span');
+      label.textContent = meta.label;
+      btn.append(preview, label);
+      btn.addEventListener('click', () => {
+        app.settings.theme = id;
+        applyTheme(id);
+        saveSettingsSoon();
+        renderSettingsSelections();
+        refreshIdentities();
+      });
+      els.themeOptions.append(btn);
+    }
+  }
+  function buildModeOptions() {
+    els.modeOptions.replaceChildren();
+    const modes = [
+      { id: 'grid', desc: '传统的一格一格移动。' },
+      { id: 'smooth', desc: '任意方向连续转向，配方向盘。' }
+    ];
+    for (const m of modes) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mode-option';
+      btn.dataset.modeValue = m.id;
+      btn.setAttribute('aria-pressed', String(app.settings.mode === m.id));
+      const h = document.createElement('h4');
+      h.textContent = MODE_LABEL[m.id];
+      if (m.id === 'grid') {
+        const badge = document.createElement('span');
+        badge.className = 'mini-tag';
+        badge.textContent = '默认';
+        h.append(badge);
+      }
+      const p = document.createElement('p');
+      p.textContent = m.desc;
+      btn.append(h, p);
+      btn.addEventListener('click', () => {
+        app.settings.mode = m.id;
+        refreshModeLabel();
+        saveSettingsSoon();
+        renderSettingsSelections();
+      });
+      els.modeOptions.append(btn);
+    }
+  }
+  function buildSpeedOptions() {
+    els.speedOptions.replaceChildren();
+    for (const [id, meta] of Object.entries(SPEEDS)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.speedValue = id;
+      btn.setAttribute('aria-pressed', String(app.settings.speed === id));
+      btn.textContent = meta.label;
+      btn.addEventListener('click', () => {
+        app.settings.speed = id;
+        saveSettingsSoon();
+        renderSettingsSelections();
+      });
+      els.speedOptions.append(btn);
+    }
+  }
+  function buildStyleOptions() {
+    for (const playerIndex of [1, 2]) {
+      const container = playerIndex === 1 ? els.styleOptions1 : els.styleOptions2;
+      container.replaceChildren();
+      for (const [id, label] of Object.entries(STYLE_LABEL)) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'style-option';
+        btn.dataset.styleValue = id;
+        btn.dataset.player = String(playerIndex);
+        btn.setAttribute('aria-pressed', 'false');
+        const line = document.createElement('span');
+        line.className = 'skin-line';
+        line.dataset.style = id;
+        line.style.setProperty('--skin-color', playerColor(playerIndex - 1));
+        const text = document.createElement('span');
+        text.textContent = label;
+        btn.append(line, text);
+        btn.addEventListener('click', () => {
+          app.settings.players[playerIndex === 1 ? 'p1' : 'p2'].style = id;
+          saveSettingsSoon();
+          renderSettingsSelections();
+          refreshIdentities();
+        });
+        container.append(btn);
+      }
+    }
+  }
+  function renderSettingsSelections() {
+    $$('.theme-option', els.themeOptions).forEach((btn) => {
+      const selected = btn.dataset.themeValue === app.settings.theme;
+      btn.classList.toggle('selected', selected);
+      btn.setAttribute('aria-pressed', String(selected));
+    });
+    $$('button[data-mode-value]', els.modeOptions).forEach((btn) => {
+      const selected = btn.dataset.modeValue === app.settings.mode;
+      btn.classList.toggle('selected', selected);
+      btn.setAttribute('aria-pressed', String(selected));
+    });
+    $$('button[data-speed-value]', els.speedOptions).forEach((btn) => {
+      const selected = btn.dataset.speedValue === app.settings.speed;
+      btn.classList.toggle('selected', selected);
+      btn.setAttribute('aria-pressed', String(selected));
+    });
+    for (const playerIndex of [1, 2]) {
+      const key = playerIndex === 1 ? 'p1' : 'p2';
+      const container = playerIndex === 1 ? els.styleOptions1 : els.styleOptions2;
+      $$('.style-option', container).forEach((btn) => {
+        const selected = btn.dataset.styleValue === app.settings.players[key].style;
+        btn.classList.toggle('selected', selected);
+        btn.setAttribute('aria-pressed', String(selected));
+        const line = $('.skin-line', btn);
+        if (line) line.style.setProperty('--skin-color', playerColor(playerIndex - 1));
+      });
+    }
+    els.name1.value = app.settings.players.p1.name;
+    els.name2.value = app.settings.players.p2.name;
+    els.profileDot1.style.setProperty('--profile-color', playerColor(0));
+    els.profileDot2.style.setProperty('--profile-color', playerColor(1));
+  }
+  function openSettings() {
+    renderSettingsSelections();
+    refreshIdentities();
+    els.settingsModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => els.closeSettingsBtn.focus());
+  }
+  function closeSettings() {
+    // Names should never be left empty after editing.
+    for (const [key, input] of [['p1', els.name1], ['p2', els.name2]]) {
+      const cleaned = sanitizeName(input.value, DEFAULT_SETTINGS.players[key].name);
+      app.settings.players[key].name = cleaned;
+      input.value = cleaned;
+    }
+    saveSettingsSoon();
+    els.settingsModal.classList.remove('open');
+    document.body.style.overflow = '';
+    refreshIdentities();
+    if (app.screen === 'menu') refreshModeLabel();
+  }
+  function setupSettingsUI() {
+    buildThemeOptions();
+    buildModeOptions();
+    buildSpeedOptions();
+    buildStyleOptions();
+    renderSettingsSelections();
+    refreshIdentities();
+    applyTheme(app.settings.theme);
+    refreshModeLabel();
+    setBest(app.best);
+    for (const [key, input] of [['p1', els.name1], ['p2', els.name2]]) {
+      input.addEventListener('input', () => {
+        // Limit by characters rather than by UTF-16 units where possible.
+        const chars = Array.from(input.value.replace(/[\u0000-\u001f\u007f]/g, '')).slice(0, 10);
+        if (chars.join('') !== input.value) input.value = chars.join('');
+        app.settings.players[key].name = input.value;
+        saveSettingsSoon();
+        refreshIdentities();
+      });
+      input.addEventListener('blur', () => {
+        const fallback = DEFAULT_SETTINGS.players[key].name;
+        const cleaned = sanitizeName(input.value, fallback);
+        input.value = cleaned;
+        app.settings.players[key].name = cleaned;
+        saveSettingsSoon();
+        refreshIdentities();
+      });
+    }
+    els.settingsBtn.addEventListener('click', openSettings);
+    els.menuSettingsBtn.addEventListener('click', openSettings);
+    els.closeSettingsBtn.addEventListener('click', closeSettings);
+    els.settingsDoneBtn.addEventListener('click', closeSettings);
+    els.settingsModal.addEventListener('click', (e) => {
+      if (e.target === els.settingsModal) closeSettings();
+    });
+  }
+  /* ------------------------------------------------------------------
+     Menu / online shell navigation
+     ------------------------------------------------------------------ */
+  function initMenuUI() {
+    $$('[data-start]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const count = btn.dataset.start === 'duel' ? 2 : 1;
+        startLocalGame(count);
+      });
+    });
+    $('#onlineMenuBtn').addEventListener('click', () => {
+      setOnlineStatus('');
+      setScreen('online');
+    });
+    $$('[data-back="menu"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (net.busy) return;
+        setOnlineStatus('');
+        setScreen('menu');
+      });
+    });
+    els.codeInputs.forEach((input, index) => {
+      input.addEventListener('input', () => {
+        input.value = input.value.replace(/\D/g, '').slice(0, 1);
+        if (input.value && index < els.codeInputs.length - 1) els.codeInputs[index + 1].focus();
+        if (els.codeInputs.every((el) => el.value)) els.joinRoomBtn.focus();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !input.value && index > 0) {
+          els.codeInputs[index - 1].focus();
+          els.codeInputs[index - 1].value = '';
+          e.preventDefault();
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+          els.codeInputs[index - 1].focus();
+        } else if (e.key === 'ArrowRight' && index < els.codeInputs.length - 1) {
+          els.codeInputs[index + 1].focus();
+        } else if (e.key === 'Enter') {
+          joinRoom();
+        }
+      });
+      input.addEventListener('paste', (e) => {
+        const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+        const digits = text.replace(/\D/g, '').slice(0, 4);
+        if (!digits) return;
+        e.preventDefault();
+        digits.split('').forEach((digit, i) => {
+          if (els.codeInputs[i]) els.codeInputs[i].value = digit;
+        });
+        const next = clamp(digits.length, 0, 3);
+        els.codeInputs[next].focus();
+      });
+    });
+    els.createRoomBtn.addEventListener('click', createRoom);
+    els.joinRoomBtn.addEventListener('click', joinRoom);
+    els.copyCodeBtn.addEventListener('click', copyRoomCode);
+    els.leaveLobbyBtn.addEventListener('click', () => leaveOnlineToMenu());
+    els.startOnlineBtn.addEventListener('click', startOnlineRound);
+    els.exitGameBtn.addEventListener('click', leaveGame);
+    els.overlayPrimary.addEventListener('click', onOverlayPrimary);
+    els.overlaySecondary.addEventListener('click', onOverlaySecondary);
+  }
+  function readRoomCode() {
+    return els.codeInputs.map((input) => input.value.trim()).join('');
+  }
+  function setOnlineBusy(busy, message) {
+    net.busy = busy;
+    const canUse = !busy && !net.role;
+    els.createRoomBtn.disabled = !canUse;
+    els.joinRoomBtn.disabled = !canUse;
+    els.codeInputs.forEach((input) => { input.disabled = !canUse; });
+    els.createRoomBtn.classList.toggle('loading', busy);
+    els.joinRoomBtn.classList.toggle('loading', busy);
+    if (message) setOnlineStatus(message);
+  }
+  /* ------------------------------------------------------------------
+     Game session
+     ------------------------------------------------------------------ */
+  class GameSession {
+    constructor(options) {
+      this.role = options.role || 'local';
+      this.mode = options.mode === 'smooth' ? 'smooth' : 'grid';
+      this.speedKey = SPEEDS[options.speed] ? options.speed : 'normal';
+      this.themeId = THEMES[options.theme] ? options.theme : 'paper';
+      this.players = options.players.map((p) => ({
+        id: p.id,
+        slot: Number.isFinite(p.slot) ? p.slot : 0,
+        name: sanitizeName(p.name, '玩家'),
+        style: sanitizeStyle(p.style)
+      }));
+      this.localSeats = (options.localSeats || []).slice();
+      this.roundId = options.roundId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+      this.onEnd = options.onEnd || (() => {});
+      this.onHud = options.onHud || (() => {});
+      this.phase = 'playing';
+      this.snakes = [];
+      this.foods = [];
+      this.gridAccum = 0;
+      this.tickIndex = 0;
+      this.result = null;
+      this.hasEnded = false;
+      this.clientBuffer = [];
+      this.latestSnapshot = null;
+      this.lastSentSteer = null;
+      this.clientAim = null;
+      this.lastHudSignature = '';
+      this.startedAt = performance.now();
+    }
+    get tickMs() {
+      return SPEEDS[this.speedKey].gridMs;
+    }
+    get smoothSpeed() {
+      return SPEEDS[this.speedKey].smoothSpeed;
+    }
+    get online() {
+      return this.role === 'host' || this.role === 'client';
+    }
+    get isHost() {
+      return this.role === 'host';
+    }
+    localPrimarySeat() {
+      return this.localSeats.length ? this.localSeats[0] : null;
+    }
+    initRound() {
+      this.phase = 'playing';
+      this.result = null;
+      this.hasEnded = false;
+      this.gridAccum = 0;
+      this.tickIndex = 0;
+      this.snakes = [];
+      this.foods = [];
+      const sortedPlayers = this.players.slice().sort((a, b) => a.slot - b.slot);
+      for (const player of sortedPlayers) {
+        const snake = this.mode === 'grid'
+          ? this.createGridSnake(player)
+          : this.createSmoothSnake(player);
+        this.snakes.push(snake);
+      }
+      if (this.mode === 'grid') {
+        this.spawnGridFoods(this.foodTarget() - this.foods.length);
+      } else {
+        this.spawnSmoothFoods(this.foodTarget() - this.foods.length);
+      }
+      this.emitHud(true);
+    }
+    foodTarget() {
+      const count = Math.max(1, this.players.length);
+      if (this.mode === 'grid') return count === 1 ? 4 : Math.min(7, count + 4);
+      return count === 1 ? 5 : Math.min(8, count + 4);
+    }
+    createGridSnake(player) {
+      const spawns = [
+        { x: 13, y: 9, dir: 'right' },
+        { x: GRID.cols - 14, y: GRID.rows - 10, dir: 'left' },
+        { x: GRID.cols - 17, y: 7, dir: 'down' },
+        { x: 17, y: GRID.rows - 8, dir: 'up' }
+      ];
+      const s = spawns[player.slot % spawns.length];
+      const vec = DIRECTIONS[s.dir];
+      const body = [];
+      for (let i = 0; i < 5; i++) {
+        body.push({ x: s.x - vec.x * i, y: s.y - vec.y * i });
+      }
+      // Keep strange-but-valid slot combinations inside the field.
+      for (const cell of body) {
+        cell.x = clamp(cell.x, 0, GRID.cols - 1);
+        cell.y = clamp(cell.y, 0, GRID.rows - 1);
+      }
+      return {
+        id: player.id,
+        slot: player.slot,
+        name: player.name,
+        style: player.style,
+        alive: true,
+        score: 0,
+        dir: { ...vec },
+        queue: [],
+        body,
+        prevBody: body.map((c) => ({ ...c })),
+        angle: dirAngle(vec)
+      };
+    }
+    createSmoothSnake(player) {
+      const spawns = [
+        { x: WORLD.w * 0.21, y: WORLD.h * 0.32, angle: 0 },
+        { x: WORLD.w * 0.79, y: WORLD.h * 0.68, angle: Math.PI },
+        { x: WORLD.w * 0.68, y: WORLD.h * 0.21, angle: Math.PI / 2 },
+        { x: WORLD.w * 0.32, y: WORLD.h * 0.79, angle: -Math.PI / 2 }
+      ];
+      const s = spawns[player.slot % spawns.length];
+      const trail = makeStraightTrail(s.x, s.y, s.angle, SMOOTH.initialLength + 90);
+      const body = sampleTrail(trail, SMOOTH.initialLength, SMOOTH.bodySpacing);
+      return {
+        id: player.id,
+        slot: player.slot,
+        name: player.name,
+        style: player.style,
+        alive: true,
+        score: 0,
+        x: s.x,
+        y: s.y,
+        angle: s.angle,
+        aim: s.angle,
+        trail,
+        body,
+        bodyLength: SMOOTH.initialLength,
+        prevAngle: s.angle
+      };
+    }
+    initGridFoodCount() {
+      return this.foodTarget();
+    }
+    spawnOneGridFood() {
+      for (let attempt = 0; attempt < 500; attempt++) {
+        const x = Math.floor(Math.random() * GRID.cols);
+        const y = Math.floor(Math.random() * GRID.rows);
+        if (this.snakes.some((s) => s.body.some((c) => c.x === x && c.y === y))) continue;
+        if (this.foods.some((f) => f.gx === x && f.gy === y)) continue;
+        this.foods.push({
+          gx: x,
+          gy: y,
+          x: GRID.ox + (x + 0.5) * GRID.cell,
+          y: GRID.oy + (y + 0.5) * GRID.cell,
+          r: 7.8
+        });
+        return;
+      }
+    }
+    spawnGridFoods(count) {
+      for (let i = 0; i < count; i++) this.spawnOneGridFood();
+    }
+    spawnOneSmoothFood() {
+      for (let attempt = 0; attempt < 800; attempt++) {
+        const x = 58 + Math.random() * (WORLD.w - 116);
+        const y = 58 + Math.random() * (WORLD.h - 116);
+        let bad = false;
+        for (const snake of this.snakes) {
+          if (!snake.alive) continue;
+          if (dist(x, y, snake.x, snake.y) < 115) { bad = true; break; }
+          for (let i = 0; i < snake.body.length; i += 2) {
+            if (dist2(x, y, snake.body[i].x, snake.body[i].y) < 75 * 75) { bad = true; break; }
+          }
+          if (bad) break;
+        }
+        if (bad) continue;
+        if (this.foods.some((f) => dist2(x, y, f.x, f.y) < 55 * 55)) continue;
+        this.foods.push({ x, y, r: 8 + Math.random() * 1.6 });
+        return;
+      }
+      // Last resort: somewhere within the arena.
+      this.foods.push({
+        x: 80 + Math.random() * (WORLD.w - 160),
+        y: 80 + Math.random() * (WORLD.h - 160),
+        r: 8
+      });
+    }
+    spawnSmoothFoods(count) {
+      for (let i = 0; i < count; i++) this.spawnOneSmoothFood();
+    }
+    emitHud(force = false) {
+      const players = this.getPlayerViews();
+      const signature = players.map((p) => `${p.id}:${p.name}:${p.score}:${p.alive ? 1 : 0}`).join('|')
+        + '|' + this.phase + '|' + players.length;
+      if (force || signature !== this.lastHudSignature) {
+        this.lastHudSignature = signature;
+        this.onHud(players, this);
+      }
+    }
+    getPlayerViews() {
+      if (this.role === 'client') {
+        const data = this.latestSnapshot;
+        if (!data) {
+          return this.players
+            .slice()
+            .sort((a, b) => a.slot - b.slot)
+            .map((p) => ({ ...p, score: 0, alive: true, len: 0 }));
+        }
+        return data.snakes.map((s) => ({
+          id: s.id,
+          slot: s.slot,
+          name: s.name,
+          style: s.style,
+          score: s.score,
+          alive: s.alive,
+          len: (s.body ? s.body.length / 2 : 0)
+        }));
+      }
+      return this.snakes.map((s) => ({
+        id: s.id,
+        slot: s.slot,
+        name: s.name,
+        style: s.style,
+        score: s.score,
+        alive: s.alive,
+        len: this.mode === 'grid' ? s.body.length : s.body.length
+      }));
+    }
+    getLocalSnake() {
+      const seat = this.localPrimarySeat();
+      if (seat == null) return null;
+      if (this.role === 'client') {
+        const data = this.latestSnapshot;
+        if (!data) return null;
+        return data.snakes.find((s) => s.slot === seat) || null;
+      }
+      return this.snakes.find((s) => s.slot === seat) || null;
+    }
+    getAimAngle() {
+      if (this.mode !== 'smooth') return null;
+      if (this.role === 'client') {
+        if (this.clientAim != null) return this.clientAim;
+        const snake = this.getLocalSnake();
+        return snake ? snake.angle : null;
+      }
+      const snake = this.getLocalSnake();
+      return snake ? (snake.aim != null ? snake.aim : snake.angle) : null;
+    }
+    queueDirection(snake, dir) {
+      if (!snake || !snake.alive || this.mode !== 'grid') return;
+      const ref = snake.queue.length ? snake.queue[snake.queue.length - 1] : snake.dir;
+      if (dir.x === -ref.x && dir.y === -ref.y) return;
+      if (dir.x === ref.x && dir.y === ref.y) return;
+      if (snake.queue.length >= 2) snake.queue.shift();
+      snake.queue.push({ ...dir });
+    }
+    inputDirection(seat, direction) {
+      const dir = typeof direction === 'object' ? direction : DIRECTIONS[direction];
+      if (!dir || !Number.isFinite(dir.x) || !Number.isFinite(dir.y)) return;
+      if (this.role === 'client') {
+        if (seat === this.localPrimarySeat()) {
+          const normalized = dir.x > 0 ? 'right' : dir.x < 0 ? 'left' : dir.y > 0 ? 'down' : 'up';
+          sendToHost({ t: 'dir', dir: normalized });
+        }
+        return;
+      }
+      const snake = this.snakes.find((s) => s.slot === seat);
+      this.queueDirection(snake, dir);
+    }
+    sendSteerThrottled(angle) {
+      this.clientAim = angle;
+      const now = performance.now();
+      const send = () => {
+        if (!activeGame || activeGame !== this) return;
+        sendToHost({ t: 'steer', angle: round1(angle * 1000) / 1000 });
+      };
+      if (now - lastSteerSentAt >= 45) {
+        clearTimeout(steerTimer);
+        steerPending = null;
+        lastSteerSentAt = now;
+        send();
+      } else {
+        steerPending = angle;
+        clearTimeout(steerTimer);
+        steerTimer = setTimeout(() => {
+          if (steerPending != null) {
+            sendToHost({ t: 'steer', angle: round1(steerPending * 1000) / 1000 });
+            lastSteerSentAt = performance.now();
+            steerPending = null;
+          }
+        }, 46);
+      }
+    }
+    inputSteer(seat, angle) {
+      if (!Number.isFinite(angle)) return;
+      const a = normAngle(angle);
+      if (this.role === 'client') {
+        if (seat === this.localPrimarySeat()) this.sendSteerThrottled(a);
+        return;
+      }
+      if (this.mode !== 'smooth') return;
+      const snake = this.snakes.find((s) => s.slot === seat);
+      if (snake && snake.alive) snake.aim = a;
+    }
+    applyRemoteInput(playerId, type, value) {
+      if (this.role !== 'host' || this.phase !== 'playing') return;
+      const snake = this.snakes.find((s) => s.id === playerId);
+      if (!snake || !snake.alive) return;
+      if (type === 'grid') {
+        const dir = DIRECTIONS[value];
+        if (dir) this.queueDirection(snake, dir);
+      } else if (type === 'steer') {
+        if (Number.isFinite(value)) snake.aim = normAngle(value);
+      }
+    }
+    removePlayer(playerId) {
+      if (this.role === 'client' || !playerId) return;
+      const snake = this.snakes.find((s) => s.id === playerId);
+      if (!snake || !snake.alive) return;
+      snake.alive = false;
+      if (this.phase === 'playing') {
+        this.emitHud(true);
+        this.checkEndCondition();
+      }
+    }
+    getGridProgress() {
+      if (this.phase === 'over') return 1;
+      return clamp(this.gridAccum / this.tickMs, 0, 1);
+    }
+    renderBodyForGrid(snake) {
+      const progress = this.getGridProgress();
+      const prev = snake.prevBody && snake.prevBody.length ? snake.prevBody : snake.body;
+      const out = [];
+      for (let i = 0; i < snake.body.length; i++) {
+        const cur = snake.body[i];
+        const old = prev[Math.min(i, prev.length - 1)] || cur;
+        out.push({
+          x: GRID.ox + (lerp(old.x, cur.x, progress) + 0.5) * GRID.cell,
+          y: GRID.oy + (lerp(old.y, cur.y, progress) + 0.5) * GRID.cell
+        });
+      }
+      return out;
+    }
+    getRenderSnakes() {
+      if (this.role === 'client') return [];
+      return this.snakes.map((snake) => {
+        let points;
+        if (this.mode === 'grid') {
+          points = this.renderBodyForGrid(snake);
+        } else {
+          points = snake.body.map((p) => ({ x: p.x, y: p.y }));
+        }
+        return {
+          id: snake.id,
+          slot: snake.slot,
+          name: snake.name,
+          style: snake.style,
+          alive: snake.alive,
+          score: snake.score,
+          angle: this.mode === 'grid' ? dirAngle(snake.dir) : snake.angle,
+          points
+        };
+      });
+    }
+    getSnapshot() {
+      const snakes = this.getRenderSnakes().map((s) => {
+        const flat = [];
+        for (const p of s.points) {
+          flat.push(Math.round(p.x), Math.round(p.y));
+        }
+        return {
+          id: s.id,
+          slot: s.slot,
+          name: s.name,
+          style: s.style,
+          alive: s.alive,
+          score: s.score,
+          angle: round1(s.angle * 1000) / 1000,
+          body: flat
+        };
+      });
+      const foods = this.foods.map((f) => [Math.round(f.x), Math.round(f.y), round1(f.r)]);
+      return {
+        round: this.roundId,
+        phase: this.phase,
+        tick: this.tickIndex,
+        mode: this.mode,
+        snakes,
+        foods,
+        result: this.result
+      };
+    }
+    ingestSnapshot(snapshot) {
+      if (!snapshot || snapshot.round !== this.roundId) return;
+      const now = performance.now();
+      this.latestSnapshot = snapshot;
+      this.phase = snapshot.phase;
+      if (snapshot.phase === 'over' && snapshot.result) this.result = snapshot.result;
+      this.clientBuffer.push({ time: now, data: snapshot });
+      if (this.clientBuffer.length > 14) this.clientBuffer.shift();
+      this.emitHud();
+      if (snapshot.phase === 'over' && !this.hasEnded) {
+        this.hasEnded = true;
+        if (this.onEnd) this.onEnd(snapshot.result || {
+          winnerId: null,
+          winnerName: '',
+          draw: true,
+          scores: this.getPlayerViews()
+        });
+      }
+    }
+    interpolateSnapshots(now) {
+      if (!this.clientBuffer.length) return null;
+      if (this.clientBuffer.length === 1) return this.clientBuffer[0].data;
+      const target = now - INTERP_DELAY;
+      let a = this.clientBuffer[0];
+      let b = this.clientBuffer[this.clientBuffer.length - 1];
+      for (let i = this.clientBuffer.length - 1; i >= 1; i--) {
+        if (this.clientBuffer[i - 1].time <= target && target <= this.clientBuffer[i].time) {
+          a = this.clientBuffer[i - 1];
+          b = this.clientBuffer[i];
+          break;
+        }
+      }
+      const span = Math.max(1, b.time - a.time);
+      const t = clamp((target - a.time) / span, 0, 1);
+      const prevMap = new Map(a.data.snakes.map((s) => [s.id, s]));
+      const snakes = b.data.snakes.map((s) => {
+        const prev = prevMap.get(s.id);
+        const prevBody = prev && prev.body ? prev.body : s.body;
+        const currLen = Math.floor(s.body.length / 2);
+        const prevLen = Math.floor(prevBody.length / 2);
+        const points = [];
+        for (let i = 0; i < currLen; i++) {
+          const pi = Math.min(i, Math.max(0, prevLen - 1));
+          const ax = prevBody[pi * 2];
+          const ay = prevBody[pi * 2 + 1];
+          const bx = s.body[i * 2];
+          const by = s.body[i * 2 + 1];
+          points.push({ x: lerp(ax, bx, t), y: lerp(ay, by, t) });
+        }
+        return {
+          id: s.id,
+          slot: s.slot,
+          name: s.name,
+          style: s.style,
+          alive: s.alive,
+          score: s.score,
+          angle: lerpAngle(prev ? prev.angle : s.angle, s.angle, t),
+          points
+        };
+      });
+      const foods = b.data.foods.map((f) => ({ x: f[0], y: f[1], r: f[2] }));
+      return {
+        phase: b.data.phase,
+        snakes,
+        foods,
+        result: b.data.result
+      };
+    }
+    emitClientSnapshotResult(snapshot) {
+      if (snapshot.phase !== 'over' || this.hasEnded) return;
+      this.hasEnded = true;
+      if (this.onEnd) this.onEnd(snapshot.result || {});
+    }
+    frame(dt, now) {
+      if (this.role !== 'client' && this.phase === 'playing') {
+        if (this.mode === 'grid') this.updateGrid(dt);
+        else this.updateSmooth(dt);
+      }
+      const data = this.role === 'client'
+        ? this.interpolateSnapshots(now)
+        : this.localRenderData();
+      this.render(data);
+    }
+    localRenderData() {
+      return {
+        phase: this.phase,
+        snakes: this.getRenderSnakes(),
+        foods: this.foods,
+        result: this.result
+      };
+    }
+    updateGrid(dt) {
+      this.gridAccum += dt * 1000;
+      let steps = 0;
+      while (this.gridAccum >= this.tickMs && this.phase === 'playing' && steps < 3) {
+        this.gridAccum -= this.tickMs;
+        this.gridStep();
+        steps++;
+      }
+      if (this.phase === 'over') {
+        this.gridAccum = 0;
+      }
+    }
+    gridStep() {
+      const alive = this.snakes.filter((s) => s.alive);
+      if (!alive.length) {
+        this.checkEndCondition();
+        return;
+      }
+      for (const s of this.snakes) {
+        if (s.alive) s.prevBody = s.body.map((c) => ({ ...c }));
+      }
+      const plans = new Map();
+      for (const s of alive) {
+        if (s.queue.length) {
+          const nextDir = s.queue.shift();
+          if (!(nextDir.x === -s.dir.x && nextDir.y === -s.dir.y)) s.dir = nextDir;
+        }
+        const next = { x: s.body[0].x + s.dir.x, y: s.body[0].y + s.dir.y };
+        const foodIndex = this.foods.findIndex((f) => f.gx === next.x && f.gy === next.y);
+        plans.set(s.id, { next, eats: foodIndex >= 0, foodIndex });
+      }
+      const occupied = new Set();
+      for (const s of alive) {
+        const plan = plans.get(s.id);
+        const limit = s.body.length - (plan.eats ? 0 : 1);
+        for (let i = 0; i < limit; i++) {
+          occupied.add(cellKey(s.body[i].x, s.body[i].y));
+        }
+      }
+      const dying = new Set();
+      const nextCells = new Map();
+      for (const s of alive) {
+        const next = plans.get(s.id).next;
+        if (next.x < 0 || next.x >= GRID.cols || next.y < 0 || next.y >= GRID.rows) {
+          dying.add(s.id);
+          continue;
+        }
+        if (occupied.has(cellKey(next.x, next.y))) {
+          dying.add(s.id);
+          continue;
+        }
+        const key = cellKey(next.x, next.y);
+        if (nextCells.has(key)) {
+          dying.add(s.id);
+          dying.add(nextCells.get(key));
+        } else {
+          nextCells.set(key, s.id);
+        }
+      }
+      for (const s of alive) {
+        if (dying.has(s.id)) {
+          s.alive = false;
+          continue;
+        }
+        const plan = plans.get(s.id);
+        s.body.unshift(plan.next);
+        if (!plan.eats) s.body.pop();
+      }
+      // Only survivors get to eat. Remove eaten foods in descending index order.
+      const eaten = [];
+      for (const s of alive) {
+        if (!s.alive) continue;
+        const plan = plans.get(s.id);
+        if (!plan.eats || this.foods[plan.foodIndex] == null) continue;
+        if (this.foods[plan.foodIndex].gx === plan.next.x && this.foods[plan.foodIndex].gy === plan.next.y) {
+          eaten.push({ index: plan.foodIndex, snake: s });
+        }
+      }
+      eaten.sort((a, b) => b.index - a.index);
+      for (const item of eaten) {
+        this.foods.splice(item.index, 1);
+        item.snake.score += 1;
+      }
+      const missing = this.foodTarget() - this.foods.length;
+      if (missing > 0) this.spawnGridFoods(missing);
+      this.tickIndex += 1;
+      this.emitHud();
+      this.checkEndCondition();
+    }
+    updateSmooth(dt) {
+      const step = Math.min(dt, 0.04);
+      const alive = this.snakes.filter((s) => s.alive);
+      if (!alive.length) {
+        this.checkEndCondition();
+        return;
+      }
+      const dead = new Set();
+      for (const s of alive) {
+        const diff = normAngle(s.aim - s.angle);
+        const maxTurn = SMOOTH.turnRate * step;
+        s.prevAngle = s.angle;
+        if (Math.abs(diff) <= maxTurn) s.angle = s.aim;
+        else s.angle += Math.sign(diff) * maxTurn;
+        const nx = s.x + Math.cos(s.angle) * this.smoothSpeed * step;
+        const ny = s.y + Math.sin(s.angle) * this.smoothSpeed * step;
+        if (nx < BOUNDS.left || nx > BOUNDS.right || ny < BOUNDS.top || ny > BOUNDS.bottom) {
+          dead.add(s.id);
+          // Move the head to the wall so the final frame reads clearly.
+          s.x = clamp(nx, BOUNDS.left, BOUNDS.right);
+          s.y = clamp(ny, BOUNDS.top, BOUNDS.bottom);
+          continue;
+        }
+        s.x = nx;
+        s.y = ny;
+        moveTrail(s, s.x, s.y);
+        s.body = sampleTrail(s.trail, s.bodyLength, SMOOTH.bodySpacing);
+      }
+      for (const s of alive) {
+        if (dead.has(s.id)) continue;
+        // Self collision: give the neck a little forgiveness.
+        for (let i = 4; i < s.body.length - 1; i++) {
+          const a = s.body[i];
+          const b = s.body[i + 1];
+          if (pointSegmentDistance2(s.x, s.y, a.x, a.y, b.x, b.y) < 12.5 * 12.5) {
+            dead.add(s.id);
+            break;
+          }
+        }
+        if (dead.has(s.id)) continue;
+        for (const other of alive) {
+          if (other === s) continue;
+          for (let i = 0; i < other.body.length - 1; i++) {
+            const a = other.body[i];
+            const b = other.body[i + 1];
+            if (pointSegmentDistance2(s.x, s.y, a.x, a.y, b.x, b.y) < 14 * 14) {
+              dead.add(s.id);
+              break;
+            }
+          }
+          if (dead.has(s.id)) break;
+        }
+      }
+      for (const s of alive) {
+        if (dead.has(s.id)) s.alive = false;
+      }
+      for (const s of alive) {
+        if (!s.alive) continue;
+        for (let i = this.foods.length - 1; i >= 0; i--) {
+          const f = this.foods[i];
+          if (dist2(s.x, s.y, f.x, f.y) <= (SMOOTH.radius + f.r + 2) ** 2) {
+            this.foods.splice(i, 1);
+            s.score += 1;
+            s.bodyLength += SMOOTH.growth;
+          }
+        }
+      }
+      const missing = this.foodTarget() - this.foods.length;
+      if (missing > 0) this.spawnSmoothFoods(missing);
+      this.emitHud();
+      this.checkEndCondition();
+    }
+    checkEndCondition() {
+      if (this.phase !== 'playing') return;
+      const alive = this.snakes.filter((s) => s.alive);
+      const wasMulti = this.players.length >= 2;
+      if (!wasMulti) {
+        if (alive.length === 0) {
+          this.result = {
+            winnerId: null,
+            winnerName: '',
+            draw: false,
+            scores: this.getPlayerViews().map((p) => ({ ...p }))
+          };
+          this.endRound();
+        }
+        return;
+      }
+      if (alive.length <= 1) {
+        const winner = alive[0] || null;
+        this.result = {
+          winnerId: winner ? winner.id : null,
+          winnerName: winner ? winner.name : '',
+          draw: !winner,
+          scores: this.getPlayerViews().map((p) => ({ ...p }))
+        };
+        this.endRound();
+      }
+    }
+    endRound() {
+      if (this.phase === 'over') return;
+      this.phase = 'over';
+      this.emitHud(true);
+      this.hasEnded = true;
+      if (this.onEnd) this.onEnd(this.result);
+    }
+    render(data) {
+      if (!data) return;
+      drawScene(ctx, data, this.mode, this.themeId, this);
+    }
+  }
+  /* ------------------------------------------------------------------
+     Canvas rendering
+     ------------------------------------------------------------------ */
+  function resizeCanvas() {
+    const rect = els.canvas.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(rect.width * dpr);
+    const h = Math.round(rect.height * dpr);
+    if (els.canvas.width !== w || els.canvas.height !== h) {
+      els.canvas.width = w;
+      els.canvas.height = h;
+    }
+    canvasSize = { w, h, dpr, scale: w / WORLD.w };
+  }
+  function drawBackground(ctx, mode, theme) {
+    const w = WORLD.w;
+    const h = WORLD.h;
+    ctx.fillStyle = theme.bg;
+    ctx.fillRect(0, 0, w, h);
+    if (mode === 'grid') {
+      ctx.beginPath();
+      for (let i = 0; i <= GRID.cols; i++) {
+        const x = GRID.ox + i * GRID.cell;
+        ctx.moveTo(x, GRID.oy);
+        ctx.lineTo(x, GRID.oy + GRID.rows * GRID.cell);
+      }
+      for (let j = 0; j <= GRID.rows; j++) {
+        const y = GRID.oy + j * GRID.cell;
+        ctx.moveTo(GRID.ox, y);
+        ctx.lineTo(GRID.ox + GRID.cols * GRID.cell, y);
+      }
+      ctx.strokeStyle = theme.grid;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.rect(GRID.ox, GRID.oy, GRID.cols * GRID.cell, GRID.rows * GRID.cell);
+      ctx.strokeStyle = theme.border;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = theme.dot;
+      for (let x = 32; x < w - 20; x += 40) {
+        for (let y = 32; y < h - 20; y += 40) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      roundRectPath(ctx, BOUNDS.left, BOUNDS.top, BOUNDS.right - BOUNDS.left, BOUNDS.bottom - BOUNDS.top, 18);
+      ctx.strokeStyle = theme.border;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+  function drawFoods(ctx, foods, theme) {
+    for (const f of foods) {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = theme.food;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(f.x - f.r * 0.26, f.y - f.r * 0.28, f.r * 0.26, 0, Math.PI * 2);
+      ctx.fillStyle = theme.foodHighlight;
+      ctx.fill();
+    }
+  }
+  function strokePolyline(ctx, points) {
+    if (!points.length) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    if (points.length === 1) {
+      ctx.lineTo(points[0].x + 0.01, points[0].y);
+    }
+  }
+  function drawSnake(ctx, snake, mode, theme, color, dead) {
+    const points = snake.points;
+    if (!points || !points.length) return;
+    const bodyWidth = mode === 'grid' ? GRID.cell * 0.82 : SMOOTH.bodyWidth;
+    const headRadius = mode === 'grid' ? 10.6 : 11.5;
+    const head = points[0];
+    ctx.save();
+    if (dead) ctx.globalAlpha = 0.28;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (snake.style === 'outline') {
+      strokePolyline(ctx, points);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = bodyWidth;
+      ctx.stroke();
+      strokePolyline(ctx, points);
+      ctx.strokeStyle = theme.bg;
+      ctx.lineWidth = Math.max(4, bodyWidth - 7);
+      ctx.stroke();
+    } else if (snake.style === 'stripe') {
+      strokePolyline(ctx, points);
+      ctx.globalAlpha = dead ? 0.12 : 0.42;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = bodyWidth;
+      ctx.stroke();
+      ctx.globalAlpha = dead ? 0.26 : 1;
+      ctx.setLineDash([9, 8]);
+      strokePolyline(ctx, points);
+      ctx.lineWidth = bodyWidth;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (snake.style === 'dot') {
+      strokePolyline(ctx, points);
+      ctx.globalAlpha = dead ? 0.1 : 0.3;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = bodyWidth * 0.34;
+      ctx.stroke();
+      ctx.globalAlpha = dead ? 0.28 : 1;
+      const dotStride = mode === 'grid' ? 1 : 2;
+      for (let i = 0; i < points.length; i += dotStride) {
+        const p = points[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, bodyWidth * 0.31, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+    } else {
+      strokePolyline(ctx, points);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = bodyWidth;
+      ctx.stroke();
+      strokePolyline(ctx, points);
+      ctx.globalAlpha = dead ? 0.08 : 0.17;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(2, bodyWidth * 0.18);
+      ctx.stroke();
+      ctx.globalAlpha = dead ? 0.28 : 1;
+    }
+    // Head
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, headRadius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    if (!dead) {
+      const angle = snake.angle;
+      const fx = Math.cos(angle);
+      const fy = Math.sin(angle);
+      const px = -fy;
+      const py = fx;
+      const eyeForward = 3.4;
+      const eyeSide = 4.2;
+      const eyeR = 1.8;
+      ctx.fillStyle = theme.eye;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(
+          head.x + fx * eyeForward + px * eyeSide * side,
+          head.y + fy * eyeForward + py * eyeSide * side,
+          eyeR, 0, Math.PI * 2
+        );
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  function drawNameTag(ctx, snake, theme, color) {
+    if (!snake.points || !snake.points.length) return;
+    const head = snake.points[0];
+    const fontSize = 15;
+    const font = `600 ${fontSize}px "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`;
+    ctx.save();
+    ctx.font = font;
+    const textWidth = ctx.measureText(snake.name).width;
+    const paddingX = 10;
+    const dotSpace = 13;
+    const pillW = textWidth + dotSpace + paddingX * 2;
+    const pillH = 25;
+    let pillX = head.x - pillW / 2;
+    let pillY = head.y - 36;
+    if (pillY < 8) pillY = head.y + 25;
+    pillX = clamp(pillX, 8, WORLD.w - pillW - 8);
+    pillY = clamp(pillY, 8, WORLD.h - pillH - 8);
+    roundRectPath(ctx, pillX, pillY, pillW, pillH, 8);
+    ctx.fillStyle = theme.labelBg;
+    ctx.fill();
+    ctx.strokeStyle = theme.labelBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(pillX + paddingX + 3, pillY + pillH / 2, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.fillStyle = theme.labelText;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillText(snake.name, pillX + paddingX + dotSpace - 4, pillY + pillH / 2 + 0.5);
+    ctx.restore();
+  }
+  function drawScene(ctx, data, mode, themeId, session) {
+    if (!canvasSize.w || !canvasSize.h) resizeCanvas();
+    const sx = els.canvas.width / WORLD.w;
+    const sy = els.canvas.height / WORLD.h;
+    if (!sx || !sy) return;
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+    const theme = CANVAS_THEMES[themeId] || CANVAS_THEMES.paper;
+    drawBackground(ctx, mode, theme);
+    if (data.foods && data.foods.length) drawFoods(ctx, data.foods, theme);
+    if (!data.snakes) return;
+    const palette = PALETTES[themeId] || PALETTES.paper;
+    const ordered = data.snakes.slice().sort((a, b) => {
+      if (a.alive !== b.alive) return a.alive ? 1 : -1;
+      return a.slot - b.slot;
+    });
+    for (const s of ordered) {
+      const dead = !s.alive;
+      if (dead && data.phase === 'playing') continue;
+      drawSnake(ctx, s, mode, theme, palette[s.slot % palette.length], dead);
+    }
+    for (const s of data.snakes) {
+      if (!s.alive) continue;
+      drawNameTag(ctx, s, theme, palette[s.slot % palette.length]);
+    }
+  }
+  /* ------------------------------------------------------------------
+     HUD / overlays / wheel
+     ------------------------------------------------------------------ */
+  function updateScoreStrip(players, session) {
+    if (!session) {
+      els.scoreStrip.replaceChildren();
+      return;
+    }
+    const signature = players.map((p) => `${p.id}:${p.name}:${p.score}:${p.alive ? 1 : 0}:${p.slot}`).join('|')
+      + '|' + session.localSeats.join(',') + '|' + session.online;
+    if (signature === lastHudSignature) return;
+    lastHudSignature = signature;
+    const palette = PALETTES[session.themeId] || PALETTES.paper;
+    els.scoreStrip.replaceChildren();
+    for (const p of players.slice().sort((a, b) => a.slot - b.slot)) {
+      const chip = document.createElement('span');
+      chip.className = 'score-chip';
+      const isYou = session.online && session.localSeats.includes(p.slot);
+      if (isYou) chip.classList.add('you');
+      if (!p.alive) chip.classList.add('out');
+      chip.style.setProperty('--player-color', palette[p.slot % palette.length]);
+      chip.title = `${p.name} · ${STYLE_LABEL[p.style] || '经典'} · ${p.score} 分`;
+      const dot = document.createElement('span');
+      dot.className = 'score-dot';
+      const name = document.createElement('span');
+      name.className = 'score-name';
+      name.textContent = p.name;
+      const value = document.createElement('span');
+      value.className = 'score-value';
+      value.textContent = String(p.score);
+      chip.append(dot, name);
+      if (isYou) {
+        const you = document.createElement('span');
+        you.className = 'score-you';
+        you.textContent = '你';
+        chip.append(you);
+      }
+      chip.append(value);
+      els.scoreStrip.append(chip);
+    }
+  }
+  function syncSpectateBanner() {
+    if (!activeGame || activeGame.role === 'local') {
+      els.spectateBanner.hidden = true;
+      return;
+    }
+    if (activeGame.role === 'client') {
+      const view = activeGame.getLocalSnake();
+      const stillPlaying = activeGame.phase === 'playing';
+      els.spectateBanner.hidden = !(stillPlaying && view && !view.alive);
+    } else {
+      const snake = activeGame.getLocalSnake();
+      els.spectateBanner.hidden = !(activeGame.phase === 'playing' && snake && !snake.alive);
+    }
+  }
+  function setWheelVisual(angle) {
+    if (!Number.isFinite(angle)) return;
+    app.wheelAngle = angle;
+    const deg = angle * 180 / Math.PI;
+    els.steerWheel.style.setProperty('--wheel-angle', `${deg}deg`);
+    const knob = $('.wheel-knob', els.steerWheel);
+    if (knob) {
+      const radius = 38;
+      knob.style.left = `${50 + Math.cos(angle) * radius}%`;
+      knob.style.top = `${50 + Math.sin(angle) * radius}%`;
+    }
+  }
+  function syncWheel() {
+    const show = !!activeGame
+      && app.screen === 'game'
+      && activeGame.mode === 'smooth'
+      && activeGame.phase === 'playing'
+      && activeGame.getLocalSnake()
+      && activeGame.getLocalSnake().alive;
+    els.steerWheel.classList.toggle('visible', !!show);
+    els.steerWheel.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (show) {
+      const aim = activeGame.getAimAngle();
+      if (aim != null) setWheelVisual(aim);
+    }
+  }
+  function updateImmediateHud(session) {
+    if (!session) return;
+    ensureActiveGameHud(session);
+    updateScoreStrip(session.getPlayerViews(), session);
+    syncSpectateBanner();
+    syncWheel();
+  }
+  function ensureActiveGameHud(session) {
+    // Game chrome is set once at start; kept separate for easy future updates.
+    els.gameModeTag.textContent = MODE_LABEL[session.mode];
+  }
+  function formatResultRows(result, session) {
+    els.overlayResults.replaceChildren();
+    const scores = result && result.scores ? result.scores.slice() : session.getPlayerViews();
+    const palette = PALETTES[session.themeId] || PALETTES.paper;
+    const winnerId = result ? result.winnerId : null;
+    const isSingle = session.players.length < 2;
+    if (isSingle) {
+      const p = scores[0];
+      if (!p) return;
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.style.setProperty('--player-color', palette[p.slot % palette.length]);
+      const dot = document.createElement('span');
+      dot.className = 'result-dot';
+      const name = document.createElement('span');
+      name.className = 'result-name';
+      name.textContent = p.name;
+      const score = document.createElement('span');
+      score.className = 'result-score';
+      score.textContent = `${p.score} 分`;
+      row.append(dot, name, score);
+      els.overlayResults.append(row);
+      return;
+    }
+    for (const p of scores) {
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.style.setProperty('--player-color', palette[p.slot % palette.length]);
+      const dot = document.createElement('span');
+      dot.className = 'result-dot';
+      const name = document.createElement('span');
+      name.className = 'result-name';
+      name.textContent = p.name;
+      const score = document.createElement('span');
+      score.className = 'result-score';
+      score.textContent = `${p.score} 分`;
+      const tag = document.createElement('span');
+      tag.className = 'result-tag';
+      if (winnerId && p.id === winnerId) {
+        tag.classList.add('win');
+        tag.textContent = '获胜';
+      } else {
+        tag.textContent = p.alive ? '存活' : '出局';
+      }
+      row.append(dot, name, score, tag);
+      els.overlayResults.append(row);
+    }
+  }
+  function showResultOverlay(scope, result, session) {
+    if (!session) return;
+    app.overlayScope = scope;
+    const isSingle = session.players.length < 2;
+    const winnerName = result && result.winnerName ? result.winnerName : '';
+    els.overlayResults.hidden = false;
+    els.overlayEyebrow.textContent = scope === 'onlineClient'
+      ? '联机对局结束'
+      : isSingle ? '单人练习' : '本局结束';
+    if (isSingle) {
+      els.overlayTitle.textContent = '游戏结束';
+      const score = result && result.scores && result.scores[0] ? result.scores[0].score : 0;
+      els.overlayText.textContent = `这次吃到 ${score} 个食物，再来一局试试更高分。`;
+      setBest(score);
+    } else {
+      els.overlayTitle.textContent = winnerName ? `「${winnerName}」获胜` : '平局';
+      els.overlayText.textContent = scope === 'onlineClient'
+        ? '等待房主决定是否开始下一局。'
+        : '撞到边界、自己或别的蛇就会出局。';
+    }
+    formatResultRows(result, session);
+    els.overlayNote.hidden = true;
+    els.overlayNote.textContent = '';
+    if (scope === 'local') {
+      els.overlayPrimary.hidden = false;
+      els.overlayPrimary.textContent = '再来一局';
+      els.overlaySecondary.hidden = false;
+      els.overlaySecondary.textContent = '返回主页';
+    } else if (scope === 'onlineHost') {
+      els.overlayPrimary.hidden = false;
+      els.overlayPrimary.textContent = '再来一局';
+      els.overlaySecondary.hidden = false;
+      els.overlaySecondary.textContent = '返回主页';
+      if (net.players.length < 2) {
+        els.overlayPrimary.disabled = true;
+        els.overlayNote.hidden = false;
+        els.overlayNote.textContent = '当前只剩你一个人，至少需要 2 名玩家才能再来一局。';
+      } else {
+        els.overlayPrimary.disabled = false;
+      }
+    } else {
+      els.overlayPrimary.hidden = true;
+      els.overlayPrimary.disabled = false;
+      els.overlaySecondary.hidden = false;
+      els.overlaySecondary.textContent = '离开房间';
+      els.overlayNote.hidden = false;
+      els.overlayNote.textContent = '房间仍然保留，等房主开始下一局。';
+    }
+    els.gameOverlay.hidden = false;
+    syncSpectateBanner();
+    syncWheel();
+  }
+  function hideResultOverlay() {
+    els.gameOverlay.hidden = true;
+    els.overlayPrimary.disabled = false;
+    app.overlayScope = null;
+  }
+  function onOverlayPrimary() {
+    if (app.overlayScope === 'local') {
+      hideResultOverlay();
+      if (activeGame) startLocalGame(activeGame.players.length, true);
+    } else if (app.overlayScope === 'onlineHost') {
+      if (net.role !== 'host') return;
+      startOnlineRound();
+    }
+  }
+  function onOverlaySecondary() {
+    if (app.overlayScope === 'onlineClient') {
+      leaveOnlineToMenu();
+    } else {
+      leaveGame();
+    }
+  }
+  function setGameChrome(session) {
+    els.gameModeTag.textContent = MODE_LABEL[session.mode];
+    els.gameRoomTag.hidden = !session.online;
+    els.gameRoomTag.textContent = session.online && net.code ? '房间 ' + net.code : '';
+    if (session.online) {
+      els.netInfo.textContent = session.role === 'host' ? '联机 · 房主' : '联机 · 已连接';
+    } else {
+      els.netInfo.textContent = session.players.length > 1 ? '本地双人' : '本地单人';
+    }
+    const key = session.mode === 'grid'
+      ? (session.players.length > 1
+        ? '玩家 1：WASD · 玩家 2：方向键 · 撞墙或身体即出局'
+        : 'WASD / 方向键移动 · 吃食物变长')
+      : (session.players.length > 1
+        ? '玩家 1：WASD · 玩家 2：方向键 · 右下角方向盘控制玩家 1'
+        : 'WASD / 方向键自由转向 · 也可以拖动右下角方向盘');
+    els.controlsHint.textContent = key;
+    syncWheel();
+  }
+  /* ------------------------------------------------------------------
+     Local games
+     ------------------------------------------------------------------ */
+  function makePlayerMeta(index) {
+    return {
+      id: index === 0 ? 'p1' : 'p2',
+      slot: index,
+      name: sanitizeName(app.settings.players[index === 0 ? 'p1' : 'p2'].name, index === 0 ? '小绿' : '小橙'),
+      style: sanitizeStyle(app.settings.players[index === 0 ? 'p1' : 'p2'].style)
+    };
+  }
+  function startLocalGame(playerCount, isRestart = false) {
+    if (net.role) cleanupNetwork();
+    app.localGameKind = playerCount === 2 ? 'duel' : 'solo';
+    const players = [];
+    for (let i = 0; i < playerCount; i++) players.push(makePlayerMeta(i));
+    const localSeats = players.map((p) => p.slot);
+    activeGame = new GameSession({
+      role: 'local',
+      mode: app.settings.mode,
+      speed: app.settings.speed,
+      theme: app.settings.theme,
+      players,
+      localSeats,
+      onHud: (p, s) => {
+        updateScoreStrip(p, s);
+        syncSpectateBanner();
+        syncWheel();
+      },
+      onEnd: (result) => {
+        updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+        showResultOverlay('local', result, activeGame);
+      }
+    });
+    lastHudSignature = '';
+    hideResultOverlay();
+    els.spectateBanner.hidden = true;
+    pressedDirs = new Map();
+    setScreen('game');
+    setGameChrome(activeGame);
+    activeGame.initRound();
+    updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+    syncWheel();
+    setWheelVisual(activeGame.getAimAngle() || 0);
+    requestAnimationFrame(resizeCanvas);
+  }
+  /* ------------------------------------------------------------------
+     Online networking
+     ------------------------------------------------------------------ */
+  function loadPeerLibrary() {
+    if (window.Peer) return Promise.resolve(window.Peer);
+    if (peerLibPromise) return peerLibPromise;
+    peerLibPromise = new Promise((resolve, reject) => {
+      let index = 0;
+      const tryNext = () => {
+        if (window.Peer) { resolve(window.Peer); return; }
+        if (index >= PEER_SCRIPT_SOURCES.length) {
+          reject(new Error('无法加载联机组件'));
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = PEER_SCRIPT_SOURCES[index++];
+        script.async = true;
+        script.onload = () => {
+          if (window.Peer) resolve(window.Peer);
+          else tryNext();
+        };
+        script.onerror = tryNext;
+        document.head.appendChild(script);
+      };
+      tryNext();
+    });
+    return peerLibPromise;
+  }
+  function randomRoomCode() {
+    return String(1000 + Math.floor(Math.random() * 9000));
+  }
+  function publicPlayer(p) {
+    return { pid: p.pid, slot: p.slot, name: p.name, style: p.style, host: !!p.host };
+  }
+  function publicPlayers() {
+    return net.players.slice().sort((a, b) => a.slot - b.slot).map(publicPlayer);
+  }
+  function roomSettingsSnapshot() {
+    return {
+      theme: app.settings.theme,
+      mode: app.settings.mode,
+      speed: app.settings.speed
+    };
+  }
+  function friendlyPeerError(err) {
+    const type = err && (err.type || err.message);
+    switch (type) {
+      case 'peer-unavailable': return '找不到这个房间，请检查 4 位房间码。';
+      case 'unavailable-id': return '房间码刚好被占用了，请再试一次。';
+      case 'network':
+      case 'server-error':
+      case 'socket-error':
+      case 'socket-closed': return '无法连接联机服务，请检查网络后重试。';
+      case 'browser-incompatible': return '当前浏览器不支持联机功能。';
+      case 'webrtc': return '点对点连接建立失败，请换用 Chrome 或 Edge 再试。';
+      default:
+        if (err && err.message === '联机服务连接超时') return '联机服务连接超时，请检查网络。';
+        return '联机失败，请稍后重试。';
+    }
+  }
+  function resetNetworkState() {
+    clearInterval(net.snapTimer);
+    clearTimeout(net.joinTimer);
+    clearTimeout(net.welcomeTimer);
+    net.snapTimer = null;
+    net.joinTimer = null;
+    net.welcomeTimer = null;
+    net.role = null;
+    net.peer = null;
+    net.code = null;
+    net.players = [];
+    net.roomSettings = null;
+    net.phase = 'idle';
+    net.selfSlot = null;
+    net.conn = null;
+    net.conns.clear();
+    net.busy = false;
+    net.rejected = false;
+  }
+  function cleanupNetwork() {
+    const peer = net.peer;
+    resetNetworkState();
+    if (peer) {
+      try { peer.destroy(); } catch (e) { /* ignore */ }
+    }
+  }
+  function makeHostPlayer() {
+    return {
+      pid: 'host',
+      slot: 0,
+      name: sanitizeName(app.settings.players.p1.name, DEFAULT_SETTINGS.players.p1.name),
+      style: sanitizeStyle(app.settings.players.p1.style),
+      host: true
+    };
+  }
+  async function createRoom() {
+    if (net.busy || net.role) return;
+    setOnlineBusy(true, '正在创建房间…');
+    try {
+      await loadPeerLibrary();
+      let peer = null;
+      let code = '';
+      let lastErr = null;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        code = randomRoomCode();
+        try {
+          peer = await openHostPeer(code);
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (!err || err.type !== 'unavailable-id') throw err;
+        }
+      }
+      if (!peer) throw lastErr || new Error('房间码创建失败');
+      beginHost(peer, code);
+      setOnlineBusy(false);
+      setOnlineStatus('');
+    } catch (err) {
+      setOnlineStatus(friendlyPeerError(err), true);
+      cleanupNetwork();
+      setOnlineBusy(false);
+    }
+  }
+  function openHostPeer(code) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let peer;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { peer.destroy(); } catch (e) { /* ignore */ }
+        reject(new Error('联机服务连接超时'));
+      }, 16000);
+      try {
+        peer = new window.Peer(PEER_PREFIX + code, { debug: 1 });
+      } catch (err) {
+        clearTimeout(timer);
+        reject(err);
+        return;
+      }
+      peer.on('open', () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(peer);
+      });
+      peer.on('error', (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { peer.destroy(); } catch (e) { /* ignore */ }
+        reject(err);
+      });
+    });
+  }
+  function beginHost(peer, code) {
+    resetNetworkState();
+    net.role = 'host';
+    net.peer = peer;
+    net.code = code;
+    net.phase = 'lobby';
+    net.roomSettings = roomSettingsSnapshot();
+    net.players = [makeHostPlayer()];
+    peer.on('connection', (conn) => handleIncomingConnection(peer, conn));
+    peer.on('disconnected', () => {
+      if (net.peer !== peer || net.role !== 'host') return;
+      showToast('联机服务暂时断开，正在重连…');
+      try { peer.reconnect(); } catch (e) { /* ignore */ }
+    });
+    peer.on('error', (err) => {
+      if (net.peer !== peer || net.role !== 'host') return;
+      if (err && (err.type === 'network' || err.type === 'server-error')) {
+        showToast('联机服务出现波动');
+      }
+    });
+    peer.on('close', () => {
+      if (net.peer !== peer || net.role !== 'host') return;
+      showToast('房间已关闭');
+      leaveGame({ silent: true });
+    });
+    setScreen('lobby');
+    renderLobby();
+  }
+  function freeSlot() {
+    for (let slot = 1; slot < 4; slot++) {
+      if (!net.players.some((p) => p.slot === slot)) return slot;
+    }
+    return -1;
+  }
+  function handleIncomingConnection(hostPeer, conn) {
+    if (net.role !== 'host' || net.peer !== hostPeer) {
+      try { conn.close(); } catch (e) { /* ignore */ }
+      return;
+    }
+    const onOpen = () => {
+      if (net.role !== 'host' || net.peer !== hostPeer) {
+        try { conn.close(); } catch (e) { /* ignore */ }
+        return;
+      }
+      if (net.phase !== 'lobby') {
+        sendToConn(conn, { t: 'reject', reason: 'playing' });
+        setTimeout(() => { try { conn.close(); } catch (e) { /* ignore */ } }, 240);
+        return;
+      }
+      if (net.players.length >= 4) {
+        sendToConn(conn, { t: 'reject', reason: 'full' });
+        setTimeout(() => { try { conn.close(); } catch (e) { /* ignore */ } }, 240);
+        return;
+      }
+      if (net.conns.has(conn.peer)) {
+        try { conn.close(); } catch (e) { /* ignore */ }
+        return;
+      }
+      const slot = freeSlot();
+      if (slot < 0) {
+        sendToConn(conn, { t: 'reject', reason: 'full' });
+        setTimeout(() => { try { conn.close(); } catch (e) { /* ignore */ } }, 240);
+        return;
+      }
+      const meta = conn.metadata && typeof conn.metadata === 'object' ? conn.metadata : {};
+      const player = {
+        pid: conn.peer,
+        slot,
+        name: sanitizeName(meta.name, '玩家'),
+        style: sanitizeStyle(meta.style),
+        host: false
+      };
+      net.conns.set(conn.peer, conn);
+      net.players.push(player);
+      conn.on('data', (data) => handleHostData(conn, data));
+      conn.on('close', () => handleClientGone(conn));
+      conn.on('error', () => handleClientGone(conn));
+      sendToConn(conn, {
+        t: 'welcome',
+        slot: player.slot,
+        code: net.code,
+        settings: net.roomSettings,
+        players: publicPlayers(),
+        you: { pid: player.pid, name: player.name, style: player.style }
+      });
+      broadcastLobby();
+      showToast(`${player.name} 加入了房间`);
+      if (app.screen === 'lobby') renderLobby();
+    };
+    conn.on('open', onOpen);
+    if (conn.open) onOpen();
+  }
+  function sendToConn(conn, data) {
+    if (!conn) return;
+    try {
+      if (conn.open) conn.send(data);
+    } catch (e) { /* the close handler will clean up */ }
+  }
+  function broadcastHost(data, exceptPeerId = null) {
+    for (const [pid, conn] of net.conns) {
+      if (pid !== exceptPeerId) sendToConn(conn, data);
+    }
+  }
+  function broadcastLobby() {
+    if (net.role !== 'host') return;
+    const message = {
+      t: 'lobby',
+      code: net.code,
+      phase: net.phase,
+      players: publicPlayers(),
+      settings: net.roomSettings
+    };
+    broadcastHost(message);
+    if (app.screen === 'lobby') renderLobby();
+  }
+  function handleHostData(conn, data) {
+    if (net.role !== 'host' || !data || typeof data !== 'object') return;
+    if (data.t === 'hello') {
+      const p = net.players.find((x) => x.pid === conn.peer);
+      if (p) {
+        p.name = sanitizeName(data.name, p.name);
+        p.style = sanitizeStyle(data.style);
+        broadcastLobby();
+      }
+      return;
+    }
+    if (!activeGame || activeGame.role !== 'host') return;
+    if (data.t === 'dir' && typeof data.dir === 'string') {
+      activeGame.applyRemoteInput(conn.peer, 'grid', data.dir);
+    } else if (data.t === 'steer' && Number.isFinite(data.angle)) {
+      activeGame.applyRemoteInput(conn.peer, 'steer', data.angle);
+    }
+  }
+  function handleClientGone(conn) {
+    if (net.role !== 'host' || !net.conns.has(conn.peer)) return;
+    net.conns.delete(conn.peer);
+    const player = net.players.find((p) => p.pid === conn.peer);
+    net.players = net.players.filter((p) => p.pid !== conn.peer);
+    if (player) {
+      showToast(`${player.name} 离开了房间`);
+      if (activeGame && activeGame.role === 'host' && activeGame.phase === 'playing') {
+        activeGame.removePlayer(player.pid);
+      }
+    }
+    if (net.phase === 'lobby') {
+      broadcastLobby();
+      if (app.screen === 'lobby') renderLobby();
+    }
+  }
+  async function joinRoom() {
+    if (net.busy || net.role) return;
+    const code = readRoomCode();
+    if (!/^\d{4}$/.test(code)) {
+      setOnlineStatus('请输入完整的 4 位数字房间码。', true);
+      els.codeInputs.find((i) => !i.value)?.focus();
+      return;
+    }
+    setOnlineBusy(true, '正在连接房间…');
+    net.rejected = false;
+    try {
+      await loadPeerLibrary();
+      const peer = new window.Peer({ debug: 1 });
+      setupClientPending(peer, code);
+    } catch (err) {
+      setOnlineStatus(friendlyPeerError(err), true);
+      setOnlineBusy(false);
+      cleanupNetwork();
+    }
+  }
+  function setupClientPending(peer, code) {
+    resetNetworkState();
+    net.role = 'client';
+    net.peer = peer;
+    net.code = code;
+    net.phase = 'connecting';
+    net.selfSlot = null;
+    net.rejected = false;
+    const failJoin = (message) => {
+      if (net.peer !== peer || net.rejected) return;
+      setOnlineStatus(message, true);
+      setOnlineBusy(false);
+      cleanupNetwork();
+      if (app.screen !== 'online') setScreen('online');
+    };
+    net.joinTimer = setTimeout(() => {
+      failJoin('连接超时，请检查房间码或网络后重试。');
+    }, 15000);
+    const attachConnection = (conn) => {
+      net.conn = conn;
+      const onConnOpen = () => {
+        if (net.peer !== peer || net.conn !== conn) return;
+        clearTimeout(net.joinTimer);
+        net.joinTimer = null;
+        setOnlineStatus('已连接，正在进入房间…');
+        sendToHost({
+          t: 'hello',
+          name: sanitizeName(app.settings.players.p1.name, DEFAULT_SETTINGS.players.p1.name),
+          style: sanitizeStyle(app.settings.players.p1.style)
+        });
+        clearTimeout(net.welcomeTimer);
+        net.welcomeTimer = setTimeout(() => {
+          if (net.phase === 'connecting') failJoin('房间没有回应，请稍后重试。');
+        }, 9000);
+      };
+      conn.on('open', onConnOpen);
+      conn.on('data', (data) => handleClientData(data, peer, conn));
+      conn.on('close', () => {
+        if (net.peer !== peer) return;
+        handleHostConnectionLost();
+      });
+      conn.on('error', () => {
+        if (net.peer !== peer) return;
+        if (net.phase === 'connecting') failJoin('房间连接失败，请检查房间码。');
+      });
+      if (conn.open) onConnOpen();
+    };
+    peer.on('open', () => {
+      if (net.peer !== peer) return;
+      setOnlineStatus('正在建立点对点连接…');
+      let conn;
+      try {
+        conn = peer.connect(PEER_PREFIX + code, {
+          reliable: true,
+          metadata: {
+            v: 1,
+            name: sanitizeName(app.settings.players.p1.name, DEFAULT_SETTINGS.players.p1.name),
+            style: sanitizeStyle(app.settings.players.p1.style)
+          }
+        });
+      } catch (err) {
+        failJoin(friendlyPeerError(err));
+        return;
+      }
+      attachConnection(conn);
+    });
+    peer.on('error', (err) => {
+      if (net.peer !== peer) return;
+      if (!net.rejected) {
+        const message = friendlyPeerError(err);
+        if (net.phase === 'connecting') failJoin(message);
+        else showToast(message);
+      }
+    });
+    peer.on('close', () => {
+      if (net.peer !== peer) return;
+      handleHostConnectionLost();
+    });
+  }
+  function handleClientData(data, peer, conn) {
+    if (net.peer !== peer || net.conn !== conn || !data || typeof data !== 'object') return;
+    if (data.t === 'welcome') {
+      clearTimeout(net.welcomeTimer);
+      clearTimeout(net.joinTimer);
+      net.welcomeTimer = null;
+      net.joinTimer = null;
+      net.phase = 'lobby';
+      net.selfSlot = Number(data.slot);
+      net.code = data.code || net.code;
+      net.roomSettings = normalizeRoomSettings(data.settings);
+      net.players = Array.isArray(data.players) ? data.players.map(normalizeLobbyPlayer).filter(Boolean) : [];
+      applyTheme(net.roomSettings.theme);
+      setOnlineBusy(false);
+      setOnlineStatus('');
+      setScreen('lobby');
+      renderLobby();
+      showToast('已加入房间');
+      return;
+    }
+    if (data.t === 'lobby') {
+      net.phase = data.phase || 'lobby';
+      net.code = data.code || net.code;
+      net.roomSettings = normalizeRoomSettings(data.settings);
+      net.players = Array.isArray(data.players) ? data.players.map(normalizeLobbyPlayer).filter(Boolean) : net.players;
+      applyTheme(net.roomSettings.theme);
+      if (app.screen === 'lobby') renderLobby();
+      return;
+    }
+    if (data.t === 'reject') {
+      net.rejected = true;
+      const reason = data.reason === 'full' ? '房间已满（最多 4 人）。' : '房间已经开始游戏，请稍后再加入。';
+      setOnlineStatus(reason, true);
+      setOnlineBusy(false);
+      cleanupNetwork();
+      if (app.screen !== 'online') setScreen('online');
+      return;
+    }
+    if (data.t === 'start') {
+      startOnlineClientGame(data);
+      return;
+    }
+    if (data.t === 'state' && data.state) {
+      if (!activeGame || activeGame.role !== 'client') return;
+      if (net.roomSettings) {
+        net.roomSettings = normalizeRoomSettings(net.roomSettings);
+      }
+      activeGame.ingestSnapshot(data.state);
+      if (activeGame.latestSnapshot) {
+        net.phase = activeGame.latestSnapshot.phase === 'over' ? 'over' : 'playing';
+        updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+        syncSpectateBanner();
+        syncWheel();
+      }
+    }
+  }
+  function normalizeRoomSettings(settings) {
+    const s = settings && typeof settings === 'object' ? settings : {};
+    return {
+      theme: THEMES[s.theme] ? s.theme : 'paper',
+      mode: MODE_LABEL[s.mode] ? s.mode : 'grid',
+      speed: SPEEDS[s.speed] ? s.speed : 'normal'
+    };
+  }
+  function normalizeLobbyPlayer(p) {
+    if (!p || typeof p !== 'object') return null;
+    return {
+      pid: typeof p.pid === 'string' ? p.pid : String(p.pid || ''),
+      slot: clamp(Number(p.slot) || 0, 0, 3),
+      name: sanitizeName(p.name, '玩家'),
+      style: sanitizeStyle(p.style),
+      host: !!p.host
+    };
+  }
+  function handleHostConnectionLost() {
+    if (net.role !== 'client') return;
+    if (net.rejected) {
+      cleanupNetwork();
+      return;
+    }
+    const wasConnecting = net.phase === 'connecting';
+    cleanupNetwork();
+    setOnlineBusy(false);
+    if (wasConnecting) {
+      setOnlineStatus('房间连接失败，请检查房间码或网络。', true);
+      if (app.screen !== 'online') setScreen('online');
+    } else {
+      showToast('房主已离开房间');
+      activeGame = null;
+      hideResultOverlay();
+      els.steerWheel.classList.remove('visible');
+      els.spectateBanner.hidden = true;
+      applyTheme(app.settings.theme);
+      setScreen('menu');
+      refreshModeLabel();
+    }
+  }
+  function startOnlineRound() {
+    if (net.role !== 'host' || net.busy) return;
+    if (net.phase === 'playing') return;
+    if (net.players.length < 2) {
+      showToast('至少需要 2 名玩家才能开始');
+      if (app.overlayScope === 'onlineHost') {
+        els.overlayPrimary.disabled = true;
+        els.overlayNote.hidden = false;
+        els.overlayNote.textContent = '当前只剩你一个人，至少需要 2 名玩家才能再来一局。';
+      }
+      return;
+    }
+    const players = net.players.slice().sort((a, b) => a.slot - b.slot).map((p) => ({
+      id: p.pid,
+      slot: p.slot,
+      name: p.name,
+      style: p.style
+    }));
+    const roundId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    activeGame = new GameSession({
+      role: 'host',
+      mode: net.roomSettings.mode,
+      speed: net.roomSettings.speed,
+      theme: net.roomSettings.theme,
+      players,
+      localSeats: [0],
+      roundId,
+      onHud: (p, s) => {
+        updateScoreStrip(p, s);
+        syncSpectateBanner();
+        syncWheel();
+      },
+      onEnd: (result) => {
+        if (net.role === 'host') {
+          net.phase = 'over';
+          clearInterval(net.snapTimer);
+          net.snapTimer = null;
+          const finalSnapshot = activeGame ? activeGame.getSnapshot() : null;
+          if (finalSnapshot) broadcastHost({ t: 'state', state: finalSnapshot });
+          updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+          showResultOverlay('onlineHost', result, activeGame);
+        }
+      }
+    });
+    net.phase = 'playing';
+    lastHudSignature = '';
+    hideResultOverlay();
+    els.spectateBanner.hidden = true;
+    pressedDirs = new Map();
+    setScreen('game');
+    setGameChrome(activeGame);
+    activeGame.initRound();
+    updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+    setWheelVisual(activeGame.getAimAngle() || 0);
+    requestAnimationFrame(resizeCanvas);
+    const initial = activeGame.getSnapshot();
+    broadcastHost({
+      t: 'start',
+      round: roundId,
+      settings: net.roomSettings,
+      players: publicPlayers(),
+      initial
+    });
+    clearInterval(net.snapTimer);
+    net.snapTimer = setInterval(() => {
+      if (net.role !== 'host' || !activeGame || activeGame.role !== 'host') return;
+      if (net.players.length === 0) return;
+      const snapshot = activeGame.getSnapshot();
+      broadcastHost({ t: 'state', state: snapshot });
+    }, NET_INTERVAL);
+    syncWheel();
+  }
+  function startOnlineClientGame(data) {
+    if (net.role !== 'client') return;
+    const settings = normalizeRoomSettings(data.settings || net.roomSettings);
+    net.roomSettings = settings;
+    net.phase = 'playing';
+    applyTheme(settings.theme);
+    const players = Array.isArray(data.players)
+      ? data.players.map(normalizeLobbyPlayer).filter(Boolean).map((p) => ({
+        id: p.pid,
+        slot: p.slot,
+        name: p.name,
+        style: p.style
+      }))
+      : net.players.map((p) => ({ id: p.pid, slot: p.slot, name: p.name, style: p.style }));
+    const localSeat = net.selfSlot == null ? 1 : net.selfSlot;
+    activeGame = new GameSession({
+      role: 'client',
+      mode: settings.mode,
+      speed: settings.speed,
+      theme: settings.theme,
+      players,
+      localSeats: [localSeat],
+      roundId: data.round || '',
+      onHud: (p, s) => {
+        updateScoreStrip(p, s);
+        syncSpectateBanner();
+        syncWheel();
+      },
+      onEnd: (result) => {
+        if (app.screen === 'game') {
+          showResultOverlay('onlineClient', result || { scores: [] }, activeGame);
+        }
+      }
+    });
+    activeGame.hasEnded = false;
+    if (data.initial) activeGame.ingestSnapshot(data.initial);
+    net.phase = 'playing';
+    lastHudSignature = '';
+    hideResultOverlay();
+    els.spectateBanner.hidden = true;
+    pressedDirs = new Map();
+    setScreen('game');
+    setGameChrome(activeGame);
+    updateScoreStrip(activeGame.getPlayerViews(), activeGame);
+    syncWheel();
+    requestAnimationFrame(resizeCanvas);
+  }
+  function sendToHost(data) {
+    if (net.role !== 'client' || !net.conn) return;
+    try {
+      if (net.conn.open) net.conn.send(data);
+    } catch (e) { /* host connection handlers will notify */ }
+  }
+  function renderLobby() {
+    if (!net.code) return;
+    els.roomCode.textContent = net.code;
+    els.lobbyCount.textContent = `${net.players.length} / 4`;
+    const settings = net.roomSettings || roomSettingsSnapshot();
+    els.lobbySummary.replaceChildren();
+    for (const text of [MODE_LABEL[settings.mode], THEMES[settings.theme].label + '主题', SPEED_LABEL[settings.speed]]) {
+      const chip = document.createElement('span');
+      chip.className = 'summary-chip';
+      chip.textContent = text;
+      els.lobbySummary.append(chip);
+    }
+    const sorted = net.players.slice().sort((a, b) => a.slot - b.slot);
+    const themeId = settings.theme;
+    const palette = PALETTES[themeId] || PALETTES.paper;
+    els.lobbyList.replaceChildren();
+    for (let slot = 0; slot < 4; slot++) {
+      const p = sorted.find((x) => x.slot === slot);
+      const row = document.createElement('div');
+      row.className = 'lobby-row';
+      if (!p) {
+        row.classList.add('empty');
+        const emptyAvatar = document.createElement('span');
+        emptyAvatar.className = 'avatar';
+        emptyAvatar.textContent = '+';
+        const text = document.createElement('span');
+        text.className = 'lobby-row-empty-text';
+        text.textContent = '等待玩家加入';
+        row.append(emptyAvatar, text);
+      } else {
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        avatar.style.setProperty('--player-color', palette[p.slot % palette.length]);
+        avatar.textContent = Array.from(p.name)[0] || '蛇';
+        const copy = document.createElement('div');
+        copy.className = 'lobby-player-copy';
+        const name = document.createElement('span');
+        name.className = 'lobby-player-name';
+        name.textContent = p.name;
+        copy.append(name);
+        if (p.host) {
+          const host = document.createElement('span');
+          host.className = 'lobby-badge host';
+          host.textContent = '房主';
+          copy.append(host);
+        }
+        if (net.role === 'client' && p.slot === net.selfSlot) {
+          const you = document.createElement('span');
+          you.className = 'lobby-badge';
+          you.textContent = '你';
+          copy.append(you);
+        }
+        const style = document.createElement('span');
+        style.className = 'lobby-player-style';
+        style.textContent = STYLE_LABEL[p.style] || '经典';
+        row.append(avatar, copy, style);
+      }
+      els.lobbyList.append(row);
+    }
+    const isHost = net.role === 'host';
+    els.startOnlineBtn.hidden = !isHost;
+    els.startOnlineBtn.disabled = !isHost || net.players.length < 2 || net.phase !== 'lobby';
+    if (isHost) {
+      els.lobbyHint.textContent = net.players.length < 2
+        ? '再等一位玩家就可以开始。把上面的房间码发给朋友。'
+        : '玩家到齐后开始游戏。你也可以继续等待，最多 4 人。';
+    } else {
+      els.lobbyHint.textContent = '等待房主开始游戏。你的名字和样式已经同步给房间里的其他人。';
+    }
+    const leaveLabel = els.leaveLobbyBtn;
+    leaveLabel.textContent = isHost ? '解散房间' : '离开房间';
+  }
+  function copyRoomCode() {
+    if (!net.code) return;
+    const text = net.code;
+    const done = () => {
+      showToast('房间码已复制');
+      const label = $('span', els.copyCodeBtn);
+      if (label) {
+        const old = label.textContent;
+        label.textContent = '已复制';
+        setTimeout(() => { label.textContent = old; }, 1300);
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        legacyCopy(text);
+        done();
+      });
+    } else {
+      legacyCopy(text);
+      done();
+    }
+  }
+  function legacyCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+    ta.remove();
+  }
+  function leaveOnlineToMenu() {
+    const wasHost = net.role === 'host';
+    cleanupNetwork();
+    activeGame = null;
+    hideResultOverlay();
+    els.steerWheel.classList.remove('visible');
+    els.spectateBanner.hidden = true;
+    pressedDirs = new Map();
+    applyTheme(app.settings.theme);
+    setScreen('menu');
+    refreshModeLabel();
+    if (wasHost) showToast('房间已关闭');
+  }
+  function leaveGame(options = {}) {
+    const wasHost = net.role === 'host';
+    const wasOnline = !!net.role;
+    cleanupNetwork();
+    activeGame = null;
+    hideResultOverlay();
+    els.steerWheel.classList.remove('visible');
+    els.spectateBanner.hidden = true;
+    app.overlayScope = null;
+    pressedDirs = new Map();
+    setScreen('menu');
+    applyTheme(app.settings.theme);
+    refreshModeLabel();
+    if (!options.silent && wasOnline) showToast(wasHost ? '房间已关闭' : '已离开房间');
+    app.localGameKind = null;
+  }
+  /* ------------------------------------------------------------------
+     Input
+     ------------------------------------------------------------------ */
+  function gameInputSeatForCode(code) {
+    if (!activeGame || app.screen !== 'game') return null;
+    const seats = activeGame.localSeats;
+    if (!seats.length) return null;
+    if (seats.length === 1) {
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) return seats[0];
+      return null;
+    }
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) return seats[0];
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) return seats[1];
+    return null;
+  }
+  function codeToDir(code) {
+    switch (code) {
+      case 'KeyW':
+      case 'ArrowUp': return 'up';
+      case 'KeyS':
+      case 'ArrowDown': return 'down';
+      case 'KeyA':
+      case 'ArrowLeft': return 'left';
+      case 'KeyD':
+      case 'ArrowRight': return 'right';
+      default: return null;
+    }
+  }
+  function handleKeyDown(e) {
+    if (els.settingsModal.classList.contains('open')) {
+      if (e.key === 'Escape') { e.preventDefault(); closeSettings(); }
+      return;
+    }
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if (['input', 'textarea', 'select'].includes(tag)) return;
+    if (app.screen !== 'game' || !activeGame) return;
+    const seat = gameInputSeatForCode(e.code);
+    if (seat == null) return;
+    if (e.repeat) {
+      if (activeGame.mode === 'grid') e.preventDefault();
+      return;
+    }
+    const dir = codeToDir(e.code);
+    if (!dir) return;
+    e.preventDefault();
+    if (activeGame.mode === 'grid') {
+      activeGame.inputDirection(seat, dir);
+    } else {
+      const keySet = pressedDirs.get(seat) || new Set();
+      keySet.add(e.code);
+      pressedDirs.set(seat, keySet);
+      if (!activeGame || activeGame.phase !== 'playing') return;
+      const vector = {
+        x: (keySet.has('KeyD') || keySet.has('ArrowRight') ? 1 : 0) - (keySet.has('KeyA') || keySet.has('ArrowLeft') ? 1 : 0),
+        y: (keySet.has('KeyS') || keySet.has('ArrowDown') ? 1 : 0) - (keySet.has('KeyW') || keySet.has('ArrowUp') ? 1 : 0)
+      };
+      if (vector.x || vector.y) {
+        const angle = Math.atan2(vector.y, vector.x);
+        activeGame.inputSteer(seat, angle);
+        if (seat === activeGame.localPrimarySeat()) setWheelVisual(angle);
+      }
+    }
+  }
+  function handleKeyUp(e) {
+    if (app.screen !== 'game' || !activeGame) return;
+    const seat = gameInputSeatForCode(e.code);
+    if (seat == null) return;
+    const dir = codeToDir(e.code);
+    if (!dir) return;
+    if (activeGame.mode === 'grid') return;
+    const keySet = pressedDirs.get(seat);
+    if (!keySet) return;
+    keySet.delete(e.code);
+    if (keySet.size === 0) pressedDirs.delete(seat);
+    const vector = keySet.size ? {
+      x: (keySet.has('KeyD') || keySet.has('ArrowRight') ? 1 : 0) - (keySet.has('KeyA') || keySet.has('ArrowLeft') ? 1 : 0),
+      y: (keySet.has('KeyS') || keySet.has('ArrowDown') ? 1 : 0) - (keySet.has('KeyW') || keySet.has('ArrowUp') ? 1 : 0)
+    } : null;
+    if (vector && (vector.x || vector.y) && activeGame.phase === 'playing') {
+      activeGame.inputSteer(seat, Math.atan2(vector.y, vector.x));
+    }
+    e.preventDefault();
+  }
+  function setupWheelInput() {
+    const wheel = els.steerWheel;
+    const updateFromPointer = (e) => {
+      if (!activeGame || activeGame.mode !== 'smooth') return;
+      const seat = activeGame.localPrimarySeat();
+      if (seat == null) return;
+      const snake = activeGame.getLocalSnake();
+      if (!snake || !snake.alive) return;
+      const rect = wheel.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+      activeGame.inputSteer(seat, angle);
+      setWheelVisual(angle);
+    };
+    wheel.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      app.wheelDragging = true;
+      try { wheel.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      updateFromPointer(e);
+    });
+    wheel.addEventListener('pointermove', (e) => {
+      if (!app.wheelDragging) return;
+      e.preventDefault();
+      updateFromPointer(e);
+    });
+    const stop = (e) => {
+      app.wheelDragging = false;
+      if (e && e.pointerId != null) {
+        try { wheel.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+    };
+    wheel.addEventListener('pointerup', stop);
+    wheel.addEventListener('pointercancel', stop);
+    wheel.addEventListener('lostpointercapture', () => { app.wheelDragging = false; });
+  }
+  /* ------------------------------------------------------------------
+     Frame loop & boot
+     ------------------------------------------------------------------ */
+  let lastFrameTime = performance.now();
+  function frameLoop(now) {
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+    lastFrameTime = now;
+    if (activeGame && app.screen === 'game') {
+      activeGame.frame(dt, now);
+    }
+    requestAnimationFrame(frameLoop);
+  }
+  function setupGlobalEvents() {
+    window.addEventListener('keydown', handleKeyDown, { passive: false });
+    window.addEventListener('keyup', handleKeyUp, { passive: false });
+    window.addEventListener('resize', () => {
+      if (app.screen === 'game') resizeCanvas();
+    });
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(() => {
+        if (app.screen === 'game') resizeCanvas();
+      }).observe(els.arenaWrap);
+    }
+    document.addEventListener('visibilitychange', () => {
+      lastFrameTime = performance.now();
+      if (document.hidden) app.wheelDragging = false;
+    });
+    window.addEventListener('beforeunload', () => {
+      if (net.peer) {
+        try { net.peer.destroy(); } catch (e) { /* ignore */ }
+      }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && els.settingsModal.classList.contains('open')) {
+        e.preventDefault();
+        closeSettings();
+      }
+    });
+    window.addEventListener('online', () => showToast('网络已恢复'));
+    window.addEventListener('offline', () => showToast('网络已断开，联机可能受影响'));
+  }
+  function init() {
+    setupSettingsUI();
+    initMenuUI();
+    setupWheelInput();
+    setupGlobalEvents();
+    refreshIdentities();
+    setScreen('menu');
+    applyTheme(app.settings.theme);
+    refreshModeLabel();
+    requestAnimationFrame(frameLoop);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
